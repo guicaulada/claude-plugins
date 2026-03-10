@@ -15,8 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/handler.sh",
-            "async": true
+            "command": "${CLAUDE_PLUGIN_ROOT}/handler.sh"
           }
         ]
       }
