@@ -34,9 +34,9 @@ func Log(format string, args ...any) {
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ts := time.Now().UTC().Format(time.RFC3339Nano)
 	msg := fmt.Sprintf(format, args...)
-	fmt.Fprintf(f, "%s %s\n", ts, msg)
+	_, _ = fmt.Fprintf(f, "%s %s\n", ts, msg)
 }

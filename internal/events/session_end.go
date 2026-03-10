@@ -36,7 +36,7 @@ func HandleSessionEnd(env payload.Envelope) error {
 	sess, err := store.GetSession(env.SessionID)
 	if err != nil || sess.SessionID == "" {
 		debug.Log("session end: no state found for %s (err: %v)", env.SessionID, err)
-		store.Close()
+		_ = store.Close()
 		return err
 	}
 
@@ -50,7 +50,7 @@ func HandleSessionEnd(env payload.Envelope) error {
 	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		debug.Log("session end: failed to create provider: %v", err)
-		store.Close()
+		_ = store.Close()
 		return err
 	}
 	defer provider.Shutdown(ctx)
@@ -189,7 +189,7 @@ func HandleSessionEnd(env payload.Envelope) error {
 	rootCtx, err := pluginotel.RootContext(sess.TraceID, sess.SpanID)
 	if err != nil {
 		debug.Log("session end: failed to create root context: %v", err)
-		store.Close()
+		_ = store.Close()
 		return err
 	}
 
