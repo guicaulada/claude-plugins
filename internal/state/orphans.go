@@ -1,5 +1,28 @@
 package state
 
+// GetOrphanedPrompts returns prompts that were never closed (no Stop).
+func (s *Store) GetOrphanedPrompts(sessionID string) ([]Prompt, error) {
+	rows, err := s.db.Query(`
+		SELECT id, session_id, span_id, start_time, prompt_index
+		FROM prompts WHERE session_id = ?
+		ORDER BY start_time ASC`, sessionID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var prompts []Prompt
+	for rows.Next() {
+		var p Prompt
+		if err := rows.Scan(&p.ID, &p.SessionID, &p.SpanID, &p.StartTime, &p.PromptIndex); err != nil {
+			return nil, err
+		}
+		prompts = append(prompts, p)
+	}
+	return prompts, rows.Err()
+}
+
 // GetOrphanedTools returns tools that were never closed (no PostToolUse/PostToolUseFailure).
 func (s *Store) GetOrphanedTools(sessionID string) ([]Tool, error) {
 	rows, err := s.db.Query(`

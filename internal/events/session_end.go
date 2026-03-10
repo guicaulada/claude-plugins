@@ -61,6 +61,41 @@ func HandleSessionEnd(env payload.Envelope) error {
 
 	builder := pluginotel.NewSpanBuilder(provider.Tracer())
 
+	// Export orphaned prompts first (interrupted, never got Stop)
+	// Must be before tools/subagents since they reference prompt as parent
+	if orphanedPrompts, err := store.GetOrphanedPrompts(env.SessionID); err == nil && len(orphanedPrompts) > 0 {
+		debug.Log("session end: exporting %d orphaned prompt spans", len(orphanedPrompts))
+		for _, p := range orphanedPrompts {
+			promptCtx, err := pluginotel.ChildContext(sess.TraceID, sess.SpanID, p.SpanID)
+			if err != nil {
+				continue
+			}
+			// Load any events recorded for this prompt
+			var promptEvents []pluginotel.SpanEvent
+			if recorded, err := store.GetEvents(env.SessionID, p.SpanID); err == nil {
+				for _, re := range recorded {
+					se := pluginotel.SpanEvent{Name: re.Name, Time: time.Unix(0, re.Timestamp)}
+					if re.Attrs != "" {
+						var attrMap map[string]string
+						if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
+							for k, v := range attrMap {
+								se.Attrs = append(se.Attrs, attribute.String(k, v))
+							}
+						}
+					}
+					promptEvents = append(promptEvents, se)
+				}
+			}
+			promptAttrs := []attribute.KeyValue{
+				attribute.String("claude_code.session.id", env.SessionID),
+				attribute.Int("claude_code.prompt.index", p.PromptIndex),
+				attribute.Bool("claude_code.interrupted", true),
+			}
+			builder.CreateErrorSpan(promptCtx, "prompt", time.Unix(0, p.StartTime), endTime, promptAttrs, "interrupted", promptEvents...)
+			_ = store.IncrementCounter(env.SessionID, "interrupted_count")
+		}
+	}
+
 	// Export orphaned subagents (interrupted, never got SubagentStop)
 	if orphanedAgents, err := store.GetOrphanedSubagents(env.SessionID); err == nil && len(orphanedAgents) > 0 {
 		debug.Log("session end: exporting %d orphaned subagent spans", len(orphanedAgents))
