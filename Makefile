@@ -6,8 +6,12 @@ PLATFORMS = darwin/amd64 darwin/arm64 linux/amd64 linux/arm64
 
 .PHONY: build test vet lint clean build-all
 
+LOCAL_OS = $(shell uname -s | tr '[:upper:]' '[:lower:]')
+LOCAL_ARCH = $(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+
 build:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY) $(CMD)
+	cp bin/$(BINARY) bin/$(BINARY)-$(LOCAL_OS)-$(LOCAL_ARCH)
 
 test:
 	go test -race ./...
