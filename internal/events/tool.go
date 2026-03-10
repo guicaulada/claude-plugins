@@ -318,6 +318,13 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		lineAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.session.cwd", env.Cwd),
 		}
+		lineGitCtx := gitpkg.GetContext(env.Cwd)
+		if lineGitCtx.Branch != "" {
+			lineAttrs = append(lineAttrs, attribute.String("vcs.ref.head.name", lineGitCtx.Branch))
+		}
+		if lineGitCtx.RepoName != "" {
+			lineAttrs = append(lineAttrs, attribute.String("vcs.repository.name", lineGitCtx.RepoName))
+		}
 		if tool.FilePath != "" {
 			lineAttrs = append(lineAttrs,
 				attribute.String("claude_code.file.extension", fi.Extension),
