@@ -81,7 +81,7 @@ func readHelperFromSettings(path string) string {
 }
 
 func runHeadersHelper(script string) (map[string]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", script)
