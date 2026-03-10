@@ -3,12 +3,15 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/guicaulada/claude-code-otel-plugin/internal/config"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/debug"
+	"github.com/guicaulada/claude-code-otel-plugin/internal/fileinfo"
+	gitpkg "github.com/guicaulada/claude-code-otel-plugin/internal/git"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/idgen"
 	pluginotel "github.com/guicaulada/claude-code-otel-plugin/internal/otel"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/payload"
@@ -19,6 +22,19 @@ type toolEvent struct {
 	ToolName  string          `json:"tool_name"`
 	ToolUseID string          `json:"tool_use_id"`
 	ToolInput json.RawMessage `json:"tool_input"`
+}
+
+// editInput captures Edit tool fields for line diff computation.
+type editInput struct {
+	FilePath  string `json:"file_path"`
+	OldString string `json:"old_string"`
+	NewString string `json:"new_string"`
+}
+
+// writeInput captures Write tool fields.
+type writeInput struct {
+	FilePath string `json:"file_path"`
+	Content  string `json:"content"`
 }
 
 func HandlePreToolUse(env payload.Envelope) error {
@@ -49,7 +65,6 @@ func HandlePreToolUse(env payload.Envelope) error {
 		}
 	}
 	if parentSpanID == "" {
-		// Fallback to session span
 		sess, err := store.GetSession(env.SessionID)
 		if err == nil && sess.SessionID != "" {
 			parentSpanID = sess.SpanID
@@ -66,11 +81,26 @@ func HandlePreToolUse(env payload.Envelope) error {
 	}
 
 	// Extract file_path from tool_input for file-based tools
-	var toolInput struct {
+	var genericInput struct {
 		FilePath string `json:"file_path"`
 	}
-	if err := json.Unmarshal(event.ToolInput, &toolInput); err == nil && toolInput.FilePath != "" {
-		tool.FilePath = toolInput.FilePath
+	if err := json.Unmarshal(event.ToolInput, &genericInput); err == nil && genericInput.FilePath != "" {
+		tool.FilePath = genericInput.FilePath
+	}
+
+	// Snapshot file content for Write tool (to compute diffs in PostToolUse)
+	if event.ToolName == "Write" && tool.FilePath != "" {
+		if content, err := os.ReadFile(tool.FilePath); err == nil {
+			tool.FileSnapshot = content
+		}
+	}
+
+	// Cache HEAD SHA before Bash tool for commit detection
+	if event.ToolName == "Bash" {
+		sha := gitpkg.GetContext(env.Cwd).HeadSHA
+		if sha != "" {
+			_ = store.SetCache("git_head_sha_pre_"+event.ToolUseID, sha)
+		}
 	}
 
 	if err := store.CreateTool(tool); err != nil {
@@ -130,8 +160,6 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string) error {
 	}
 	defer provider.Shutdown(ctx)
 
-	// Use ChildContext to preserve the stored span ID so subagent spans
-	// that reference this tool as parent link correctly
 	toolCtx, err := pluginotel.ChildContext(sess.TraceID, tool.ParentSpanID, tool.SpanID)
 	if err != nil {
 		return err
@@ -149,8 +177,32 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string) error {
 		attribute.String("claude_code.permission_mode", env.PermissionMode),
 	}
 
+	// File enrichment
 	if tool.FilePath != "" {
-		attrs = append(attrs, attribute.String("claude_code.file.path", tool.FilePath))
+		fi := fileinfo.FromPath(tool.FilePath)
+		attrs = append(attrs,
+			attribute.String("claude_code.file.path", fi.Path),
+			attribute.String("claude_code.file.extension", fi.Extension),
+		)
+		if fi.Language != "" {
+			attrs = append(attrs, attribute.String("claude_code.file.language", fi.Language))
+		}
+	}
+
+	// Line diff computation for Edit and Write tools
+	linesAdded, linesRemoved := computeLineDiff(event, tool, store)
+	if linesAdded > 0 || linesRemoved > 0 {
+		attrs = append(attrs,
+			attribute.Int("claude_code.lines_added", linesAdded),
+			attribute.Int("claude_code.lines_removed", linesRemoved),
+		)
+		_ = store.IncrementCounterBy(env.SessionID, "lines_added", int64(linesAdded))
+		_ = store.IncrementCounterBy(env.SessionID, "lines_removed", int64(linesRemoved))
+	}
+
+	// Bash commit detection
+	if event.ToolName == "Bash" {
+		detectCommit(env, tool, store, &attrs)
 	}
 
 	if isError {
@@ -167,4 +219,46 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string) error {
 		endTime.Sub(startTime).Milliseconds())
 
 	return store.DeleteTool(event.ToolUseID)
+}
+
+func computeLineDiff(event toolEvent, tool state.Tool, store *state.Store) (added, removed int) {
+	switch event.ToolName {
+	case "Edit":
+		var input editInput
+		if err := json.Unmarshal(event.ToolInput, &input); err == nil {
+			return fileinfo.DiffLines(input.OldString, input.NewString)
+		}
+	case "Write":
+		if tool.FileSnapshot != nil {
+			// Compare snapshot (before) with new content from tool_input
+			var input writeInput
+			if err := json.Unmarshal(event.ToolInput, &input); err == nil {
+				return fileinfo.DiffLines(string(tool.FileSnapshot), input.Content)
+			}
+		} else {
+			// New file — all lines are added
+			var input writeInput
+			if err := json.Unmarshal(event.ToolInput, &input); err == nil {
+				return fileinfo.CountLines(input.Content), 0
+			}
+		}
+	}
+	return 0, 0
+}
+
+func detectCommit(env payload.Envelope, tool state.Tool, store *state.Store, attrs *[]attribute.KeyValue) {
+	preSHA, _ := store.GetCache("git_head_sha_pre_" + tool.ToolUseID)
+	if preSHA == "" {
+		return
+	}
+
+	postSHA := gitpkg.GetContext(env.Cwd).HeadSHA
+	if postSHA != "" && postSHA != preSHA {
+		*attrs = append(*attrs,
+			attribute.String("claude_code.git.commit_sha", postSHA),
+			attribute.Bool("claude_code.git.commit_detected", true),
+		)
+		_ = store.IncrementCounter(env.SessionID, "commit_count")
+		debug.Log("commit detected: %s -> %s", preSHA, postSHA)
+	}
 }

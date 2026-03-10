@@ -6,6 +6,7 @@ import (
 
 	"github.com/guicaulada/claude-code-otel-plugin/internal/config"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/debug"
+	gitpkg "github.com/guicaulada/claude-code-otel-plugin/internal/git"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/idgen"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/payload"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/state"
@@ -28,6 +29,9 @@ func HandleSessionStart(env payload.Envelope) error {
 	}
 	defer store.Close()
 
+	// Extract git context from the working directory
+	gitCtx := gitpkg.GetContext(env.Cwd)
+
 	sess := state.Session{
 		SessionID:      env.SessionID,
 		TraceID:        idgen.TraceID(),
@@ -36,10 +40,19 @@ func HandleSessionStart(env payload.Envelope) error {
 		Cwd:            env.Cwd,
 		PermissionMode: env.PermissionMode,
 		StartType:      event.Source,
+		GitBranch:      gitCtx.Branch,
+		GitRemoteURL:   gitCtx.RemoteURL,
+		GitRepoName:    gitCtx.RepoName,
+		GitRepoOwner:   gitCtx.RepoOwner,
 	}
 
 	if err := store.CreateSession(sess); err != nil {
 		return err
+	}
+
+	// Cache git HEAD SHA for commit detection in Bash tool handlers
+	if gitCtx.HeadSHA != "" {
+		_ = store.SetCache("git_head_sha", gitCtx.HeadSHA)
 	}
 
 	// Cache OTel headers from otelHeadersHelper so SessionEnd
@@ -53,7 +66,8 @@ func HandleSessionStart(env payload.Envelope) error {
 		}
 	}
 
-	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s)",
-		env.SessionID, sess.TraceID, event.Source, env.Cwd)
+	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s)",
+		env.SessionID, sess.TraceID, event.Source, env.Cwd,
+		gitCtx.Branch, gitCtx.RepoOwner, gitCtx.RepoName)
 	return nil
 }

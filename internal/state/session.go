@@ -59,6 +59,16 @@ func (s *Store) IncrementCounter(sessionID, name string) error {
 	return err
 }
 
+// IncrementCounterBy atomically increments a named counter by a given amount.
+func (s *Store) IncrementCounterBy(sessionID, name string, amount int64) error {
+	_, err := s.db.Exec(`
+		INSERT INTO counters (session_id, name, value) VALUES (?, ?, ?)
+		ON CONFLICT (session_id, name) DO UPDATE SET value = value + ?`,
+		sessionID, name, amount, amount,
+	)
+	return err
+}
+
 // GetCounter retrieves the current value of a named counter.
 func (s *Store) GetCounter(sessionID, name string) (int64, error) {
 	var value int64

@@ -36,9 +36,12 @@ func HandleSessionEnd(env payload.Envelope) error {
 	toolCount, _ := store.GetCounter(env.SessionID, "tool_count")
 	errorCount, _ := store.GetCounter(env.SessionID, "error_count")
 	subagentCount, _ := store.GetCounter(env.SessionID, "subagent_count")
+	linesAdded, _ := store.GetCounter(env.SessionID, "lines_added")
+	linesRemoved, _ := store.GetCounter(env.SessionID, "lines_removed")
+	commitCount, _ := store.GetCounter(env.SessionID, "commit_count")
 
-	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d",
-		promptCount, toolCount, errorCount, subagentCount)
+	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d lines=+%d/-%d commits=%d",
+		promptCount, toolCount, errorCount, subagentCount, linesAdded, linesRemoved, commitCount)
 
 	// Export the deferred session root span
 	ctx := context.Background()
@@ -75,6 +78,9 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attribute.Int64("claude_code.session.tool_count", toolCount),
 		attribute.Int64("claude_code.session.error_count", errorCount),
 		attribute.Int64("claude_code.session.subagent_count", subagentCount),
+		attribute.Int64("claude_code.session.lines_added", linesAdded),
+		attribute.Int64("claude_code.session.lines_removed", linesRemoved),
+		attribute.Int64("claude_code.session.commit_count", commitCount),
 		attribute.Int64("claude_code.session.duration_ms", durationMs),
 	}
 
