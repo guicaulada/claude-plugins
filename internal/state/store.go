@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -33,9 +34,17 @@ func Open(sessionID string) (*Store, error) {
 	db.SetMaxOpenConns(1)
 
 	s := &Store{db: db, dir: dir}
-	if err := s.createSchema(); err != nil {
+	// Retry schema creation — concurrent async hooks may contend
+	var schemaErr error
+	for i := 0; i < 3; i++ {
+		if schemaErr = s.createSchema(); schemaErr == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if schemaErr != nil {
 		db.Close()
-		return nil, fmt.Errorf("create schema: %w", err)
+		return nil, fmt.Errorf("create schema: %w", schemaErr)
 	}
 
 	return s, nil
