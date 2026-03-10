@@ -33,13 +33,12 @@ func HandleSessionStart(env payload.Envelope) error {
 	gitCtx := gitpkg.GetContext(env.Cwd)
 
 	sess := state.Session{
-		SessionID:      env.SessionID,
-		TraceID:        idgen.TraceID(),
-		SpanID:         idgen.SpanID(),
-		StartTime:      time.Now().UnixNano(),
-		Cwd:            env.Cwd,
-		PermissionMode: env.PermissionMode,
-		StartType:      event.Source,
+		SessionID: env.SessionID,
+		TraceID:   idgen.TraceID(),
+		SpanID:    idgen.SpanID(),
+		StartTime: time.Now().UnixNano(),
+		Cwd:       env.Cwd,
+		StartType: event.Source,
 		GitBranch:      gitCtx.Branch,
 		GitRemoteURL:   gitCtx.RemoteURL,
 		GitRepoName:    gitCtx.RepoName,
