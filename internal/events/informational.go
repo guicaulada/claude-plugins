@@ -12,6 +12,16 @@ import (
 	"github.com/guicaulada/claude-code-otel-plugin/internal/state"
 )
 
+// bestParentSpanID returns the most specific active parent span:
+// current prompt > session. Used for informational events that
+// don't have their own parent context.
+func bestParentSpanID(store *state.Store, env payload.Envelope, sess state.Session) string {
+	if prompt, err := store.GetCurrentPrompt(env.SessionID); err == nil && prompt.SessionID != "" {
+		return prompt.SpanID
+	}
+	return sess.SpanID
+}
+
 // PermissionRequest
 
 type permissionRequestEvent struct {
@@ -42,6 +52,15 @@ func HandlePermissionRequest(env payload.Envelope) error {
 	logAttrs := commonLogAttrs(env)
 	logAttrs["claude_code.tool.name"] = event.ToolName
 	provider.EmitEvent("claude_code.permission.request", sess.TraceID, sess.SpanID, logAttrs)
+
+	parentSpanID := bestParentSpanID(store, env, sess)
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    parentSpanID,
+		Name:      "permission.request",
+		Timestamp: currentTimestamp(),
+		Attrs:     marshalAttrs(map[string]string{"tool.name": event.ToolName}),
+	})
 
 	debug.Log("permission request: session=%s tool=%s", env.SessionID, event.ToolName)
 	return nil
@@ -88,6 +107,15 @@ func HandleNotification(env payload.Envelope) error {
 	provider.CounterAdd(ctx, "claude_code.notification.count", 1,
 		attribute.String("claude_code.notification.type", event.NotificationType),
 	)
+
+	parentSpanID := bestParentSpanID(store, env, sess)
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    parentSpanID,
+		Name:      "notification",
+		Timestamp: currentTimestamp(),
+		Attrs:     marshalAttrs(map[string]string{"type": event.NotificationType}),
+	})
 
 	debug.Log("notification: session=%s type=%s", env.SessionID, event.NotificationType)
 	return nil
@@ -139,10 +167,10 @@ func HandleTaskCompleted(env payload.Envelope) error {
 
 	provider.CounterAdd(ctx, "claude_code.task.count", 1)
 
-	// Record event on session span
+	parentSpanID := bestParentSpanID(store, env, sess)
 	_ = store.RecordEvent(state.SpanEvent{
 		SessionID: env.SessionID,
-		SpanID:    sess.SpanID,
+		SpanID:    parentSpanID,
 		Name:      "task.completed",
 		Timestamp: currentTimestamp(),
 		Attrs:     marshalAttrs(map[string]string{"task.subject": event.TaskSubject}),
@@ -189,6 +217,15 @@ func HandleInstructionsLoaded(env payload.Envelope) error {
 	logAttrs["claude_code.instructions.load_reason"] = event.LoadReason
 	provider.EmitEvent("claude_code.instructions.loaded", sess.TraceID, sess.SpanID, logAttrs)
 
+	parentSpanID := bestParentSpanID(store, env, sess)
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    parentSpanID,
+		Name:      "instructions.loaded",
+		Timestamp: currentTimestamp(),
+		Attrs:     marshalAttrs(map[string]string{"file_path": event.FilePath, "memory_type": event.MemoryType}),
+	})
+
 	debug.Log("instructions loaded: session=%s file=%s type=%s reason=%s",
 		env.SessionID, event.FilePath, event.MemoryType, event.LoadReason)
 	return nil
@@ -229,6 +266,15 @@ func HandleConfigChange(env payload.Envelope) error {
 	}
 	provider.EmitEvent("claude_code.config.change", sess.TraceID, sess.SpanID, logAttrs)
 
+	parentSpanID := bestParentSpanID(store, env, sess)
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    parentSpanID,
+		Name:      "config.change",
+		Timestamp: currentTimestamp(),
+		Attrs:     marshalAttrs(map[string]string{"source": event.Source}),
+	})
+
 	debug.Log("config change: session=%s source=%s", env.SessionID, event.Source)
 	return nil
 }
@@ -264,6 +310,15 @@ func HandleWorktreeCreate(env payload.Envelope) error {
 	logAttrs["claude_code.worktree.name"] = event.Name
 	provider.EmitEvent("claude_code.worktree.create", sess.TraceID, sess.SpanID, logAttrs)
 
+	parentSpanID := bestParentSpanID(store, env, sess)
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    parentSpanID,
+		Name:      "worktree.create",
+		Timestamp: currentTimestamp(),
+		Attrs:     marshalAttrs(map[string]string{"name": event.Name}),
+	})
+
 	debug.Log("worktree create: session=%s name=%s", env.SessionID, event.Name)
 	return nil
 }
@@ -298,6 +353,15 @@ func HandleWorktreeRemove(env payload.Envelope) error {
 	logAttrs := commonLogAttrs(env)
 	logAttrs["claude_code.worktree.path"] = event.WorktreePath
 	provider.EmitEvent("claude_code.worktree.remove", sess.TraceID, sess.SpanID, logAttrs)
+
+	parentSpanID := bestParentSpanID(store, env, sess)
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    parentSpanID,
+		Name:      "worktree.remove",
+		Timestamp: currentTimestamp(),
+		Attrs:     marshalAttrs(map[string]string{"path": event.WorktreePath}),
+	})
 
 	debug.Log("worktree remove: session=%s path=%s", env.SessionID, event.WorktreePath)
 	return nil
@@ -335,6 +399,15 @@ func HandleTeammateIdle(env payload.Envelope) error {
 	logAttrs["claude_code.teammate.name"] = event.TeammateName
 	logAttrs["claude_code.teammate.team_name"] = event.TeamName
 	provider.EmitEvent("claude_code.teammate.idle", sess.TraceID, sess.SpanID, logAttrs)
+
+	parentSpanID := bestParentSpanID(store, env, sess)
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    parentSpanID,
+		Name:      "teammate.idle",
+		Timestamp: currentTimestamp(),
+		Attrs:     marshalAttrs(map[string]string{"teammate.name": event.TeammateName, "team.name": event.TeamName}),
+	})
 
 	debug.Log("teammate idle: session=%s teammate=%s team=%s", env.SessionID, event.TeammateName, event.TeamName)
 	return nil
@@ -377,10 +450,10 @@ func HandlePreCompact(env payload.Envelope) error {
 		attribute.String("claude_code.compact.trigger", event.Trigger),
 	)
 
-	// Record event on session span
+	parentSpanID := bestParentSpanID(store, env, sess)
 	_ = store.RecordEvent(state.SpanEvent{
 		SessionID: env.SessionID,
-		SpanID:    sess.SpanID,
+		SpanID:    parentSpanID,
 		Name:      "compact",
 		Timestamp: currentTimestamp(),
 		Attrs:     marshalAttrs(map[string]string{"trigger": event.Trigger}),
