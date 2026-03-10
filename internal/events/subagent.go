@@ -97,13 +97,17 @@ func HandleSubagentStart(env payload.Envelope) error {
 		provider.EmitEvent("claude_code.agent.start", sess.TraceID, sa.SpanID, startLogAttrs)
 
 		// Record event on parent span timeline (prompt)
-		_ = store.RecordEvent(state.SpanEvent{
+		if err := store.RecordEvent(state.SpanEvent{
 			SessionID: env.SessionID,
 			SpanID:    sa.ParentSpanID,
-			Name:      "agent:" + event.AgentType,
+			Name:      "agent.start",
 			Timestamp: sa.StartTime,
 			Attrs:     fmt.Sprintf(`{"agent.type":"%s","agent.name":"%s"}`, event.AgentType, agentName),
-		})
+		}); err != nil {
+			debug.Log("failed to record agent.start event: %v", err)
+		} else {
+			debug.Log("recorded agent.start event on span %s", sa.ParentSpanID)
+		}
 
 		saMetricAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.agent.type", event.AgentType),
@@ -200,13 +204,17 @@ func HandleSubagentStop(env payload.Envelope) error {
 	durationMs := endTime.Sub(startTime).Milliseconds()
 
 	// Record event on session span timeline
-	_ = store.RecordEvent(state.SpanEvent{
+	if err := store.RecordEvent(state.SpanEvent{
 		SessionID: env.SessionID,
 		SpanID:    sess.SpanID,
-		Name:      "agent:" + sa.AgentType + " stop",
+		Name:      "agent.stop",
 		Timestamp: endTime.UnixNano(),
 		Attrs:     fmt.Sprintf(`{"agent.type":"%s","agent.name":"%s","duration_ms":"%d"}`, sa.AgentType, sa.AgentName, durationMs),
-	})
+	}); err != nil {
+		debug.Log("failed to record agent.stop event: %v", err)
+	} else {
+		debug.Log("recorded agent.stop event on session span %s", sess.SpanID)
+	}
 
 	// Emit event
 	stopLogAttrs := commonLogAttrs(env)

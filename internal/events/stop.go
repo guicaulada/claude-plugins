@@ -66,6 +66,7 @@ func HandleStop(env payload.Envelope) error {
 	// Load recorded events for this prompt span (tool calls, agent starts)
 	var spanEvents []pluginotel.SpanEvent
 	if recorded, err := store.GetEvents(env.SessionID, prompt.SpanID); err == nil {
+		debug.Log("stop: loaded %d events for prompt span %s", len(recorded), prompt.SpanID)
 		for _, re := range recorded {
 			se := pluginotel.SpanEvent{
 				Name: re.Name,

@@ -53,6 +53,15 @@ func HandleSessionStart(env payload.Envelope) error {
 		return err
 	}
 
+	// Record session.start event on the session span
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    sess.SpanID,
+		Name:      "session.start",
+		Timestamp: sess.StartTime,
+		Attrs:     fmt.Sprintf(`{"start_type":"%s","cwd":"%s"}`, event.Source, env.Cwd),
+	})
+
 	// Cache git HEAD SHA for commit detection in Bash tool handlers
 	if gitCtx.HeadSHA != "" {
 		_ = store.SetCache("git_head_sha", gitCtx.HeadSHA)
