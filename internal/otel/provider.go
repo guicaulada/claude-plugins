@@ -63,6 +63,12 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		o(&po)
 	}
 
+	// Apply plugin-specific protocol override via env var
+	if protocol := cfg.PluginProtocol(); protocol != "" {
+		os.Setenv("OTEL_EXPORTER_OTLP_PROTOCOL", protocol)
+		debug.Log("set OTEL_EXPORTER_OTLP_PROTOCOL=%s from plugin override", protocol)
+	}
+
 	// If we have pre-loaded headers (from otelHeadersHelper cache) and
 	// OTEL_EXPORTER_OTLP_HEADERS is not set, set it as env var so all
 	// exporters (trace, metric, log) pick it up consistently.

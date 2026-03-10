@@ -53,6 +53,12 @@ func (c Config) PluginInsecure() bool {
 	return strings.HasPrefix(os.Getenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT"), "http://")
 }
 
+// PluginProtocol returns the plugin-specific OTLP protocol override.
+// Returns empty if not set — the SDK will use OTEL_EXPORTER_OTLP_PROTOCOL automatically.
+func (c Config) PluginProtocol() string {
+	return os.Getenv("OTEL_PLUGIN_EXPORTER_OTLP_PROTOCOL")
+}
+
 // PluginHeaders returns plugin-specific OTLP header overrides.
 // Returns nil if not set — the SDK will use OTEL_EXPORTER_OTLP_HEADERS automatically.
 func (c Config) PluginHeaders() map[string]string {
