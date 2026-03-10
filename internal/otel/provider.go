@@ -88,6 +88,7 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSyncer(exp),
 		sdktrace.WithResource(res),
+		sdktrace.WithIDGenerator(newFixedIDGenerator()),
 	)
 
 	return &Provider{

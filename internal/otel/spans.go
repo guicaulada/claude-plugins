@@ -41,16 +41,28 @@ func ParentContext(traceIDHex, spanIDHex string) (context.Context, error) {
 	return trace.ContextWithRemoteSpanContext(context.Background(), parentCtx), nil
 }
 
-// RootContext creates a context for a root span with a specific trace ID and span ID.
-// The root span uses the stored span ID so child spans that were already exported
-// with this span ID as their parent will correctly link to it.
+// RootContext creates a context for a root span that will have the given
+// trace ID and no parent. The tracer generates a new span ID, so the
+// returned context also carries the desired span ID for CreateRootSpan
+// to use via the fixed ID generator.
 func RootContext(traceIDHex, spanIDHex string) (context.Context, error) {
-	// For root spans, we use ParentContext with the same IDs.
-	// The tracer will generate a new span ID for the actual span,
-	// but child spans reference the stored spanIDHex as their parent.
-	// We pass the trace ID so the root span joins the same trace.
-	return ParentContext(traceIDHex, spanIDHex)
+	traceID, err := trace.TraceIDFromHex(traceIDHex)
+	if err != nil {
+		return nil, err
+	}
+	spanID, err := trace.SpanIDFromHex(spanIDHex)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store desired IDs in context for the fixed ID generator
+	ctx := context.WithValue(context.Background(), fixedTraceIDKey{}, traceID)
+	ctx = context.WithValue(ctx, fixedSpanIDKey{}, spanID)
+	return ctx, nil
 }
+
+type fixedTraceIDKey struct{}
+type fixedSpanIDKey struct{}
 
 // CreateSpan creates and immediately ends a span with explicit timestamps.
 // Returns the span's hex span ID.
