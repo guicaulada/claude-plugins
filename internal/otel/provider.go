@@ -233,9 +233,16 @@ func logExporterOpts(cfg config.Config, po providerOptions) []otlploghttp.Option
 
 func resolveHeaders(po providerOptions, cfg config.Config) map[string]string {
 	if len(po.headers) > 0 {
+		debug.Log("resolveHeaders: using %d pre-loaded headers", len(po.headers))
 		return po.headers
 	}
-	return cfg.PluginHeaders()
+	pluginHeaders := cfg.PluginHeaders()
+	if len(pluginHeaders) > 0 {
+		debug.Log("resolveHeaders: using %d plugin headers", len(pluginHeaders))
+		return pluginHeaders
+	}
+	debug.Log("resolveHeaders: no headers available")
+	return nil
 }
 
 func metricTemporality(cfg config.Config) sdkmetric.TemporalitySelector {

@@ -23,6 +23,9 @@ func (p *Provider) EmitEvent(name string, traceIDHex, spanIDHex string, attrs ma
 	var record log.Record
 	record.SetTimestamp(time.Now())
 	record.SetEventName(name)
+	record.SetBody(log.StringValue(name))
+	record.SetSeverity(log.SeverityInfo)
+	record.SetSeverityText("INFO")
 
 	kvs := make([]log.KeyValue, 0, len(attrs))
 	for k, v := range attrs {
