@@ -188,7 +188,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/handler.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/handler.sh",
+            "timeout": 30
           }
         ]
       }
