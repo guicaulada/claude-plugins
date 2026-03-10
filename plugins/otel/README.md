@@ -15,25 +15,20 @@ A Claude Code plugin that provides in-depth observability of your Claude Code se
 
 ## Installation
 
+### From marketplace
+
+```bash
+claude plugin marketplace add https://github.com/guicaulada/claude-plugins
+claude plugin install otel@guicaulada-plugins
+```
+
 ### Using `--plugin-dir` (development)
 
 ```bash
-git clone https://github.com/guicaulada/claude-code-otel-plugin.git
-cd claude-code-otel-plugin
+git clone https://github.com/guicaulada/claude-plugins.git
+cd claude-plugins/plugins/otel
 make build
 claude --plugin-dir .
-```
-
-### From release
-
-Download the latest release tarball and extract:
-
-```bash
-# Extract to a directory
-tar xzf claude-code-otel-plugin-v0.1.0.tar.gz -C ~/.claude/plugins/claude-code-otel-plugin
-
-# Run with plugin dir
-claude --plugin-dir ~/.claude/plugins/claude-code-otel-plugin
 ```
 
 ## Configuration
@@ -148,17 +143,17 @@ Key design decisions:
 - **Graceful degradation** — errors are swallowed silently, debug log when `OTEL_PLUGIN_DEBUG=1`
 - **`service.name: claude-code-otel-plugin`** distinguishes from built-in `claude-code` signals
 
-## Building
+## Development
 
 ```bash
 make build      # Build for current platform
 make build-all  # Cross-compile for all 4 targets
 make test       # Run tests
 make vet        # Run go vet
-make lint       # Run golangci-lint (if installed)
+make lint       # Run golangci-lint
 make clean      # Remove build artifacts
 ```
 
 ## License
 
-Apache-2.0
+[Apache-2.0](LICENSE)
