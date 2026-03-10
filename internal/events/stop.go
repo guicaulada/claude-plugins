@@ -41,7 +41,9 @@ func HandleStop(env payload.Envelope) error {
 	}
 	defer provider.Shutdown(ctx)
 
-	parentCtx, err := pluginotel.ParentContext(sess.TraceID, sess.SpanID)
+	// Use ChildContext so the prompt span gets the exact span ID from state
+	// (which tool spans already reference as their parent)
+	promptCtx, err := pluginotel.ChildContext(sess.TraceID, sess.SpanID, prompt.SpanID)
 	if err != nil {
 		return err
 	}
@@ -56,7 +58,7 @@ func HandleStop(env payload.Envelope) error {
 		attribute.String("claude_code.permission_mode", env.PermissionMode),
 	}
 
-	builder.CreateSpan(parentCtx, "prompt", startTime, endTime, attrs)
+	builder.CreateSpan(promptCtx, "prompt", startTime, endTime, attrs)
 
 	debug.Log("stop: exported prompt span session=%s index=%d duration=%dms",
 		env.SessionID, prompt.PromptIndex,

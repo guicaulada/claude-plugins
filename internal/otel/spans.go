@@ -61,6 +61,25 @@ func RootContext(traceIDHex, spanIDHex string) (context.Context, error) {
 	return ctx, nil
 }
 
+// ChildContext creates a context with a remote parent AND a predetermined
+// span ID for the new span. Use this when the span ID was already generated
+// (stored in state) and child spans reference it as their parent.
+func ChildContext(traceIDHex, parentSpanIDHex, spanIDHex string) (context.Context, error) {
+	ctx, err := ParentContext(traceIDHex, parentSpanIDHex)
+	if err != nil {
+		return nil, err
+	}
+
+	spanID, err := trace.SpanIDFromHex(spanIDHex)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store the desired span ID for the fixed ID generator
+	ctx = context.WithValue(ctx, fixedSpanIDKey{}, spanID)
+	return ctx, nil
+}
+
 type fixedTraceIDKey struct{}
 type fixedSpanIDKey struct{}
 

@@ -107,7 +107,9 @@ func HandleSubagentStop(env payload.Envelope) error {
 	}
 	defer provider.Shutdown(ctx)
 
-	parentCtx, err := pluginotel.ParentContext(sess.TraceID, sa.ParentSpanID)
+	// Use ChildContext so the subagent span gets the exact span ID from state
+	// (which tool spans inside this subagent reference as their parent)
+	saCtx, err := pluginotel.ChildContext(sess.TraceID, sa.ParentSpanID, sa.SpanID)
 	if err != nil {
 		return err
 	}
@@ -125,7 +127,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 		attribute.String("claude_code.permission_mode", env.PermissionMode),
 	}
 
-	builder.CreateSpan(parentCtx, spanName, startTime, endTime, attrs)
+	builder.CreateSpan(saCtx, spanName, startTime, endTime, attrs)
 
 	debug.Log("subagent stop: session=%s agent=%s duration=%dms",
 		env.SessionID, sa.AgentType,
