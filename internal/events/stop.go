@@ -9,7 +9,6 @@ import (
 
 	"github.com/guicaulada/claude-code-otel-plugin/internal/config"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/debug"
-	gitpkg "github.com/guicaulada/claude-code-otel-plugin/internal/git"
 	pluginotel "github.com/guicaulada/claude-code-otel-plugin/internal/otel"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/payload"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/state"
@@ -68,25 +67,17 @@ func HandleStop(env payload.Envelope) error {
 	durationMs := endTime.Sub(startTime).Milliseconds()
 
 	// Emit event
-	provider.EmitEvent("claude_code.prompt.stop", sess.TraceID, prompt.SpanID, map[string]string{
-		"claude_code.session.id":         env.SessionID,
-		"claude_code.prompt.index":       fmt.Sprintf("%d", prompt.PromptIndex),
-		"claude_code.prompt.duration_ms": fmt.Sprintf("%d", durationMs),
-		"claude_code.permission_mode":    env.PermissionMode,
-	})
+	logAttrs := commonLogAttrs(env)
+	logAttrs["claude_code.prompt.index"] = fmt.Sprintf("%d", prompt.PromptIndex)
+	logAttrs["claude_code.prompt.duration_ms"] = fmt.Sprintf("%d", durationMs)
+	provider.EmitEvent("claude_code.prompt.stop", sess.TraceID, prompt.SpanID, logAttrs)
 
 	// Emit metric
-	promptMetricAttrs := []attribute.KeyValue{
+	metricAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.session.cwd", env.Cwd),
 	}
-	gitCtx := gitpkg.GetContext(env.Cwd)
-	if gitCtx.Branch != "" {
-		promptMetricAttrs = append(promptMetricAttrs, attribute.String("vcs.ref.head.name", gitCtx.Branch))
-	}
-	if gitCtx.RepoName != "" {
-		promptMetricAttrs = append(promptMetricAttrs, attribute.String("vcs.repository.name", gitCtx.RepoName))
-	}
-	provider.HistogramRecord(ctx, "claude_code.prompt.duration", float64(durationMs), promptMetricAttrs...)
+	metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd)...)
+	provider.HistogramRecord(ctx, "claude_code.prompt.duration", float64(durationMs), metricAttrs...)
 
 	debug.Log("stop: exported prompt span session=%s index=%d duration=%dms",
 		env.SessionID, prompt.PromptIndex, durationMs)

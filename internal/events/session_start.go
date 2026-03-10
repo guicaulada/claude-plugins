@@ -78,30 +78,16 @@ func HandleSessionStart(env payload.Envelope) error {
 	} else {
 		defer provider.Shutdown(ctx)
 
-		provider.EmitEvent("claude_code.session.start", sess.TraceID, sess.SpanID, map[string]string{
-			"claude_code.session.id":         env.SessionID,
-			"claude_code.session.start_type": event.Source,
-			"claude_code.session.cwd":        env.Cwd,
-			"vcs.ref.head.name":              gitCtx.Branch,
-			"vcs.repository.name":            gitCtx.RepoName,
-			"vcs.repository.owner":           gitCtx.RepoOwner,
-		})
+		logAttrs := commonLogAttrs(env)
+		logAttrs["claude_code.session.start_type"] = event.Source
+		provider.EmitEvent("claude_code.session.start", sess.TraceID, sess.SpanID, logAttrs)
 
-		sessionMetricAttrs := []attribute.KeyValue{
+		metricAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.session.start_type", event.Source),
 			attribute.String("claude_code.session.cwd", env.Cwd),
 		}
-		if gitCtx.RepoName != "" {
-			sessionMetricAttrs = append(sessionMetricAttrs,
-				attribute.String("vcs.repository.name", gitCtx.RepoName),
-			)
-		}
-		if gitCtx.Branch != "" {
-			sessionMetricAttrs = append(sessionMetricAttrs,
-				attribute.String("vcs.ref.head.name", gitCtx.Branch),
-			)
-		}
-		provider.CounterAdd(ctx, "claude_code.session.count", 1, sessionMetricAttrs...)
+		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd)...)
+		provider.CounterAdd(ctx, "claude_code.session.count", 1, metricAttrs...)
 	}
 
 	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s)",

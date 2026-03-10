@@ -90,17 +90,18 @@ func HandleSubagentStart(env payload.Envelope) error {
 		defer provider.Shutdown(ctx)
 
 		sess, _ := store.GetSession(env.SessionID)
-		provider.EmitEvent("claude_code.agent.start", sess.TraceID, sa.SpanID, map[string]string{
-			"claude_code.session.id": env.SessionID,
-			"claude_code.agent.type": event.AgentType,
-			"claude_code.agent.name": agentName,
-			"claude_code.agent.id":   event.AgentID,
-		})
+		startLogAttrs := commonLogAttrs(env)
+		startLogAttrs["claude_code.agent.type"] = event.AgentType
+		startLogAttrs["claude_code.agent.name"] = agentName
+		startLogAttrs["claude_code.agent.id"] = event.AgentID
+		provider.EmitEvent("claude_code.agent.start", sess.TraceID, sa.SpanID, startLogAttrs)
 
-		provider.CounterAdd(ctx, "claude_code.subagent.count", 1,
+		saMetricAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.agent.type", event.AgentType),
 			attribute.String("claude_code.agent.name", agentName),
-		)
+		}
+		saMetricAttrs = append(saMetricAttrs, vcsMetricAttrs(env.Cwd)...)
+		provider.CounterAdd(ctx, "claude_code.subagent.count", 1, saMetricAttrs...)
 	}
 
 	debug.Log("subagent start: session=%s agent=%s type=%s id=%s",
@@ -170,19 +171,20 @@ func HandleSubagentStop(env payload.Envelope) error {
 	durationMs := endTime.Sub(startTime).Milliseconds()
 
 	// Emit event
-	provider.EmitEvent("claude_code.agent.stop", sess.TraceID, sa.SpanID, map[string]string{
-		"claude_code.session.id":        env.SessionID,
-		"claude_code.agent.type":        sa.AgentType,
-		"claude_code.agent.name":        sa.AgentName,
-		"claude_code.agent.id":          sa.AgentID,
-		"claude_code.agent.duration_ms": fmt.Sprintf("%d", durationMs),
-	})
+	stopLogAttrs := commonLogAttrs(env)
+	stopLogAttrs["claude_code.agent.type"] = sa.AgentType
+	stopLogAttrs["claude_code.agent.name"] = sa.AgentName
+	stopLogAttrs["claude_code.agent.id"] = sa.AgentID
+	stopLogAttrs["claude_code.agent.duration_ms"] = fmt.Sprintf("%d", durationMs)
+	provider.EmitEvent("claude_code.agent.stop", sess.TraceID, sa.SpanID, stopLogAttrs)
 
 	// Emit metric
-	provider.HistogramRecord(ctx, "claude_code.subagent.duration", float64(durationMs),
+	saDurationAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.agent.type", sa.AgentType),
 		attribute.String("claude_code.agent.name", sa.AgentName),
-	)
+	}
+	saDurationAttrs = append(saDurationAttrs, vcsMetricAttrs(env.Cwd)...)
+	provider.HistogramRecord(ctx, "claude_code.subagent.duration", float64(durationMs), saDurationAttrs...)
 
 	debug.Log("subagent stop: session=%s agent=%s duration=%dms",
 		env.SessionID, sa.AgentType, durationMs)

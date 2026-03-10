@@ -116,12 +116,18 @@ func HandlePreToolUse(env payload.Envelope) error {
 		defer provider.Shutdown(ctx)
 
 		sess, _ := store.GetSession(env.SessionID)
-		provider.EmitEvent("claude_code.tool.start", sess.TraceID, tool.SpanID, map[string]string{
-			"claude_code.session.id":      env.SessionID,
-			"claude_code.tool.name":       event.ToolName,
-			"claude_code.tool.use_id":     event.ToolUseID,
-			"claude_code.permission_mode": env.PermissionMode,
-		})
+		startLogAttrs := commonLogAttrs(env)
+		startLogAttrs["claude_code.tool.name"] = event.ToolName
+		startLogAttrs["claude_code.tool.use_id"] = event.ToolUseID
+		if tool.FilePath != "" {
+			startFi := fileinfo.FromPath(tool.FilePath)
+			startLogAttrs["claude_code.file.path"] = startFi.Path
+			startLogAttrs["claude_code.file.extension"] = startFi.Extension
+			if startFi.Language != "" {
+				startLogAttrs["claude_code.file.language"] = startFi.Language
+			}
+		}
+		provider.EmitEvent("claude_code.tool.start", sess.TraceID, tool.SpanID, startLogAttrs)
 	}
 
 	debug.Log("pre tool use: session=%s tool=%s id=%s parent=%s",
@@ -246,95 +252,82 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	if isError {
 		eventName = "claude_code.tool.error"
 	}
-	eventAttrs := map[string]string{
-		"claude_code.session.id":      env.SessionID,
-		"claude_code.tool.name":       event.ToolName,
-		"claude_code.tool.use_id":     event.ToolUseID,
-		"claude_code.tool.duration_ms": fmt.Sprintf("%d", durationMs),
-		"claude_code.permission_mode": env.PermissionMode,
-	}
+	logAttrs := commonLogAttrs(env)
+	logAttrs["claude_code.tool.name"] = event.ToolName
+	logAttrs["claude_code.tool.use_id"] = event.ToolUseID
+	logAttrs["claude_code.tool.duration_ms"] = fmt.Sprintf("%d", durationMs)
+	logAttrs["claude_code.tool.success"] = fmt.Sprintf("%v", !isError)
 	if tool.FilePath != "" {
 		fi := fileinfo.FromPath(tool.FilePath)
-		eventAttrs["claude_code.file.path"] = fi.Path
-		eventAttrs["claude_code.file.extension"] = fi.Extension
+		logAttrs["claude_code.file.path"] = fi.Path
+		logAttrs["claude_code.file.extension"] = fi.Extension
 		if fi.Language != "" {
-			eventAttrs["claude_code.file.language"] = fi.Language
+			logAttrs["claude_code.file.language"] = fi.Language
 		}
 	}
 	if isError {
 		if errMsg != "" {
-			eventAttrs["claude_code.error.message"] = errMsg
+			logAttrs["claude_code.error.message"] = errMsg
 		}
-		eventAttrs["claude_code.error.is_interrupt"] = fmt.Sprintf("%v", isInterrupt)
+		logAttrs["claude_code.error.is_interrupt"] = fmt.Sprintf("%v", isInterrupt)
 	}
-	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, eventAttrs)
+	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, logAttrs)
 
-	// Emit metrics
-	toolMetricAttrs := []attribute.KeyValue{
+	// Emit metrics — build shared file attrs once
+	var fi fileinfo.Info
+	var fileMetricAttrs []attribute.KeyValue
+	if tool.FilePath != "" {
+		fi = fileinfo.FromPath(tool.FilePath)
+		fileMetricAttrs = append(fileMetricAttrs,
+			attribute.String("claude_code.file.extension", fi.Extension),
+		)
+		if fi.Language != "" {
+			fileMetricAttrs = append(fileMetricAttrs,
+				attribute.String("claude_code.file.language", fi.Language),
+			)
+		}
+	}
+
+	vcsAttrs := vcsMetricAttrs(env.Cwd)
+
+	// tool.count
+	toolCountAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.tool.name", event.ToolName),
 		attribute.Bool("claude_code.tool.success", !isError),
 		attribute.String("claude_code.session.cwd", env.Cwd),
 	}
-	var fi fileinfo.Info
-	if tool.FilePath != "" {
-		fi = fileinfo.FromPath(tool.FilePath)
-		toolMetricAttrs = append(toolMetricAttrs,
-			attribute.String("claude_code.file.extension", fi.Extension),
-		)
-		if fi.Language != "" {
-			toolMetricAttrs = append(toolMetricAttrs,
-				attribute.String("claude_code.file.language", fi.Language),
-			)
-		}
-	}
-	provider.CounterAdd(ctx, "claude_code.tool.count", 1, toolMetricAttrs...)
+	toolCountAttrs = append(toolCountAttrs, fileMetricAttrs...)
+	toolCountAttrs = append(toolCountAttrs, vcsAttrs...)
+	provider.CounterAdd(ctx, "claude_code.tool.count", 1, toolCountAttrs...)
 
-	durationAttrs := []attribute.KeyValue{
+	// tool.duration
+	toolDurationAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.tool.name", event.ToolName),
+		attribute.Bool("claude_code.tool.success", !isError),
+		attribute.String("claude_code.session.cwd", env.Cwd),
 	}
-	if tool.FilePath != "" {
-		durationAttrs = append(durationAttrs,
-			attribute.String("claude_code.file.extension", fi.Extension),
-		)
-		if fi.Language != "" {
-			durationAttrs = append(durationAttrs,
-				attribute.String("claude_code.file.language", fi.Language),
-			)
-		}
-	}
-	provider.HistogramRecord(ctx, "claude_code.tool.duration", float64(durationMs), durationAttrs...)
+	toolDurationAttrs = append(toolDurationAttrs, fileMetricAttrs...)
+	toolDurationAttrs = append(toolDurationAttrs, vcsAttrs...)
+	provider.HistogramRecord(ctx, "claude_code.tool.duration", float64(durationMs), toolDurationAttrs...)
 
+	// error.count
 	if isError {
 		errorAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.tool.name", event.ToolName),
+			attribute.Bool("claude_code.error.is_interrupt", isInterrupt),
 		}
-		if errMsg != "" {
-			errorAttrs = append(errorAttrs, attribute.String("claude_code.error.message", errMsg))
-		}
+		errorAttrs = append(errorAttrs, vcsAttrs...)
 		provider.CounterAdd(ctx, "claude_code.error.count", 1, errorAttrs...)
 	}
 
+	// lines_changed.count
 	if linesAdded > 0 || linesRemoved > 0 {
 		lineAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.session.cwd", env.Cwd),
 		}
-		lineGitCtx := gitpkg.GetContext(env.Cwd)
-		if lineGitCtx.Branch != "" {
-			lineAttrs = append(lineAttrs, attribute.String("vcs.ref.head.name", lineGitCtx.Branch))
-		}
-		if lineGitCtx.RepoName != "" {
-			lineAttrs = append(lineAttrs, attribute.String("vcs.repository.name", lineGitCtx.RepoName))
-		}
-		if tool.FilePath != "" {
-			lineAttrs = append(lineAttrs,
-				attribute.String("claude_code.file.extension", fi.Extension),
-			)
-			if fi.Language != "" {
-				lineAttrs = append(lineAttrs,
-					attribute.String("claude_code.file.language", fi.Language),
-				)
-			}
-		}
+		lineAttrs = append(lineAttrs, fileMetricAttrs...)
+		lineAttrs = append(lineAttrs, vcsAttrs...)
+
 		if linesAdded > 0 {
 			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesAdded),
 				append(lineAttrs, attribute.String("type", "added"))...,

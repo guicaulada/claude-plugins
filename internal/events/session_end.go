@@ -116,30 +116,20 @@ func HandleSessionEnd(env payload.Envelope) error {
 	builder.CreateSpan(rootCtx, "session", startTime, endTime, attrs)
 
 	// Emit event
-	provider.EmitEvent("claude_code.session.end", sess.TraceID, sess.SpanID, map[string]string{
-		"claude_code.session.id":          env.SessionID,
-		"claude_code.session.end_reason":  event.Reason,
-		"claude_code.session.cwd":         sess.Cwd,
-		"claude_code.session.duration_ms": fmt.Sprintf("%d", durationMs),
-		"claude_code.session.start_type":  sess.StartType,
-	})
+	logAttrs := commonLogAttrsFromSession(env, sess)
+	logAttrs["claude_code.session.end_reason"] = event.Reason
+	logAttrs["claude_code.session.start_type"] = sess.StartType
+	logAttrs["claude_code.session.duration_ms"] = fmt.Sprintf("%d", durationMs)
+	provider.EmitEvent("claude_code.session.end", sess.TraceID, sess.SpanID, logAttrs)
 
 	// Emit metric
-	sessionDurationAttrs := []attribute.KeyValue{
+	metricAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.session.start_type", sess.StartType),
+		attribute.String("claude_code.session.end_reason", event.Reason),
 		attribute.String("claude_code.session.cwd", sess.Cwd),
 	}
-	if sess.GitRepoName != "" {
-		sessionDurationAttrs = append(sessionDurationAttrs,
-			attribute.String("vcs.repository.name", sess.GitRepoName),
-		)
-	}
-	if sess.GitBranch != "" {
-		sessionDurationAttrs = append(sessionDurationAttrs,
-			attribute.String("vcs.ref.head.name", sess.GitBranch),
-		)
-	}
-	provider.HistogramRecord(ctx, "claude_code.session.duration", float64(durationMs), sessionDurationAttrs...)
+	metricAttrs = append(metricAttrs, vcsMetricAttrsFromSession(sess)...)
+	provider.HistogramRecord(ctx, "claude_code.session.duration", float64(durationMs), metricAttrs...)
 
 	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d)",
 		env.SessionID, sess.TraceID, durationMs,
