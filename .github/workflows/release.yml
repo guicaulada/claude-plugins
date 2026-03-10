@@ -2,86 +2,19 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
 
 permissions: {}
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: write
-    strategy:
-      matrix:
-        include:
-          - goos: darwin
-            goarch: amd64
-          - goos: darwin
-            goarch: arm64
-          - goos: linux
-            goarch: amd64
-          - goos: linux
-            goarch: arm64
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
-        with:
-          go-version-file: go.mod
-
-      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
-        env:
-          CGO_ENABLED: "0"
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: |
-          VERSION=${GITHUB_REF_NAME}
-          go build -ldflags "-s -w -X github.com/guicaulada/claude-code-otel-plugin/internal/config.Version=${VERSION}" \
-            -o handler-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/handler
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: handler-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: handler-${{ matrix.goos }}-${{ matrix.goarch }}
-
-  publish:
-    needs: release
+  release-please:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: actions/download-artifact@d3f86a106a0bac45b974b63bcab8779b8e5980d6 # v4.3.0
+      - uses: googleapis/release-please-action@a02a34c4d625f9be7cb89f3d4c557c4bd5bda612 # v4.2.0
         with:
-          path: artifacts
-
-      - name: Package plugin
-        run: |
-          VERSION=${GITHUB_REF_NAME}
-          mkdir -p dist/bin
-          cp .claude-plugin/plugin.json dist/.claude-plugin/plugin.json 2>/dev/null || true
-          mkdir -p dist/.claude-plugin
-          cp .claude-plugin/plugin.json dist/.claude-plugin/
-          cp -r hooks dist/
-          cp handler.sh dist/
-          chmod +x dist/handler.sh
-          for dir in artifacts/handler-*; do
-            name=$(basename "$dir")
-            cp "$dir/$name" "dist/bin/$name"
-            chmod +x "dist/bin/$name"
-          done
-          cd dist && tar czf "../claude-code-otel-plugin-${VERSION}.tar.gz" . && cd ..
-
-      - name: Create release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION=${GITHUB_REF_NAME}
-          gh release create "${VERSION}" \
-            --title "${VERSION}" \
-            --generate-notes \
-            "claude-code-otel-plugin-${VERSION}.tar.gz"
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

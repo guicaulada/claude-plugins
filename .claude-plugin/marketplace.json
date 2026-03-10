@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "guicaulada-plugins",
+  "description": "A collection of Claude Code plugins",
+  "owner": {
+    "name": "Guilherme Caulada"
+  },
+  "plugins": [
+    {
+      "name": "otel",
+      "description": "OpenTelemetry traces, metrics, and logs from Claude Code hook lifecycle events",
+      "version": "0.1.0",
+      "source": "./plugins/otel",
+      "category": "observability",
+      "author": {
+        "name": "Guilherme Caulada"
+      }
+    }
+  ]
+}
