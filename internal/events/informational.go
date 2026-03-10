@@ -102,6 +102,9 @@ func HandleNotification(env payload.Envelope) error {
 	if event.Title != "" {
 		logAttrs["claude_code.notification.title"] = event.Title
 	}
+	if cfg.LogToolDetails && event.Message != "" {
+		logAttrs["claude_code.notification.message"] = event.Message
+	}
 	provider.EmitEvent("claude_code.notification", sess.TraceID, sess.SpanID, logAttrs)
 
 	provider.CounterAdd(ctx, "claude_code.notification.count", 1,
@@ -157,6 +160,9 @@ func HandleTaskCompleted(env payload.Envelope) error {
 	logAttrs := commonLogAttrs(env)
 	logAttrs["claude_code.task.id"] = event.TaskID
 	logAttrs["claude_code.task.subject"] = event.TaskSubject
+	if cfg.LogUserPrompts && event.TaskDescription != "" {
+		logAttrs["claude_code.task.description"] = event.TaskDescription
+	}
 	if event.TeammateName != "" {
 		logAttrs["claude_code.task.teammate_name"] = event.TeammateName
 	}
@@ -183,9 +189,11 @@ func HandleTaskCompleted(env payload.Envelope) error {
 // InstructionsLoaded
 
 type instructionsLoadedEvent struct {
-	FilePath   string `json:"file_path"`
-	MemoryType string `json:"memory_type"`
-	LoadReason string `json:"load_reason"`
+	FilePath        string `json:"file_path"`
+	MemoryType      string `json:"memory_type"`
+	LoadReason      string `json:"load_reason"`
+	TriggerFilePath string `json:"trigger_file_path"`
+	ParentFilePath  string `json:"parent_file_path"`
 }
 
 func HandleInstructionsLoaded(env payload.Envelope) error {
@@ -215,6 +223,12 @@ func HandleInstructionsLoaded(env payload.Envelope) error {
 	logAttrs["claude_code.instructions.file_path"] = event.FilePath
 	logAttrs["claude_code.instructions.memory_type"] = event.MemoryType
 	logAttrs["claude_code.instructions.load_reason"] = event.LoadReason
+	if event.TriggerFilePath != "" {
+		logAttrs["claude_code.instructions.trigger_file_path"] = event.TriggerFilePath
+	}
+	if event.ParentFilePath != "" {
+		logAttrs["claude_code.instructions.parent_file_path"] = event.ParentFilePath
+	}
 	provider.EmitEvent("claude_code.instructions.loaded", sess.TraceID, sess.SpanID, logAttrs)
 
 	parentSpanID := bestParentSpanID(store, env, sess)
@@ -416,7 +430,8 @@ func HandleTeammateIdle(env payload.Envelope) error {
 // PreCompact
 
 type preCompactEvent struct {
-	Trigger string `json:"trigger"`
+	Trigger            string `json:"trigger"`
+	CustomInstructions string `json:"custom_instructions"`
 }
 
 func HandlePreCompact(env payload.Envelope) error {
@@ -444,6 +459,9 @@ func HandlePreCompact(env payload.Envelope) error {
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
 	logAttrs["claude_code.compact.trigger"] = event.Trigger
+	if cfg.LogUserPrompts && event.CustomInstructions != "" {
+		logAttrs["claude_code.compact.custom_instructions"] = event.CustomInstructions
+	}
 	provider.EmitEvent("claude_code.compact", sess.TraceID, sess.SpanID, logAttrs)
 
 	provider.CounterAdd(ctx, "claude_code.compact.count", 1,
