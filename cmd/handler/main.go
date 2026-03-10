@@ -56,5 +56,12 @@ func run() {
 
 func registerHandlers(r *dispatch.Registry) {
 	r.Register("SessionStart", events.HandleSessionStart)
+	r.Register("UserPromptSubmit", events.HandleUserPromptSubmit)
+	r.Register("PreToolUse", events.HandlePreToolUse)
+	r.Register("PostToolUse", events.HandlePostToolUse)
+	r.Register("PostToolUseFailure", events.HandlePostToolUseFailure)
+	r.Register("SubagentStart", events.HandleSubagentStart)
+	r.Register("SubagentStop", events.HandleSubagentStop)
+	r.Register("Stop", events.HandleStop)
 	r.Register("SessionEnd", events.HandleSessionEnd)
 }
