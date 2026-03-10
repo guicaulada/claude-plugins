@@ -52,8 +52,8 @@ func HandleSessionEnd(env payload.Envelope) error {
 	branchCount, _ := store.GetCounter(env.SessionID, "branch_count")
 	repoCount, _ := store.GetCounter(env.SessionID, "repo_count")
 
-	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d lines=+%d/-%d commits=%d",
-		promptCount, toolCount, errorCount, subagentCount, linesAdded, linesRemoved, commitCount)
+	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d",
+		promptCount, toolCount, errorCount, subagentCount, linesAdded, linesRemoved, commitCount, branchCount, repoCount)
 
 	// Export the deferred session root span
 	ctx := context.Background()
