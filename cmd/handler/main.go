@@ -11,13 +11,28 @@ import (
 	"github.com/guicaulada/claude-code-otel-plugin/internal/payload"
 )
 
+var registry = newRegistry()
+
+func newRegistry() *dispatch.Registry {
+	r := dispatch.New()
+	r.Register("SessionStart", events.HandleSessionStart)
+	r.Register("UserPromptSubmit", events.HandleUserPromptSubmit)
+	r.Register("PreToolUse", events.HandlePreToolUse)
+	r.Register("PostToolUse", events.HandlePostToolUse)
+	r.Register("PostToolUseFailure", events.HandlePostToolUseFailure)
+	r.Register("SubagentStart", events.HandleSubagentStart)
+	r.Register("SubagentStop", events.HandleSubagentStop)
+	r.Register("Stop", events.HandleStop)
+	r.Register("SessionEnd", events.HandleSessionEnd)
+	return r
+}
+
 func main() {
-	code := 0
 	defer func() {
 		if r := recover(); r != nil {
 			debug.Log("panic recovered: %v", r)
 		}
-		os.Exit(code)
+		os.Exit(0)
 	}()
 
 	run()
@@ -46,22 +61,7 @@ func run() {
 		return
 	}
 
-	registry := dispatch.New()
-	registerHandlers(registry)
-
 	if err := registry.Dispatch(env); err != nil {
 		debug.Log("handler error for %s: %v", env.HookEventName, err)
 	}
-}
-
-func registerHandlers(r *dispatch.Registry) {
-	r.Register("SessionStart", events.HandleSessionStart)
-	r.Register("UserPromptSubmit", events.HandleUserPromptSubmit)
-	r.Register("PreToolUse", events.HandlePreToolUse)
-	r.Register("PostToolUse", events.HandlePostToolUse)
-	r.Register("PostToolUseFailure", events.HandlePostToolUseFailure)
-	r.Register("SubagentStart", events.HandleSubagentStart)
-	r.Register("SubagentStop", events.HandleSubagentStop)
-	r.Register("Stop", events.HandleStop)
-	r.Register("SessionEnd", events.HandleSessionEnd)
 }
