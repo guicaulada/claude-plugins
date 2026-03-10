@@ -136,7 +136,7 @@ func HandlePreToolUse(env payload.Envelope) error {
 		SpanID:    parentSpanID,
 		Name:      "tool.start",
 		Timestamp: tool.StartTime,
-		Attrs:     fmt.Sprintf(`{"tool.name":"%s"}`, event.ToolName),
+		Attrs:     marshalAttrs(map[string]string{"tool.name": event.ToolName}),
 	}); err != nil {
 		debug.Log("failed to record tool.start event: %v", err)
 	}
@@ -285,7 +285,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		SpanID:    tool.ParentSpanID,
 		Name:      "tool.end",
 		Timestamp: endTime.UnixNano(),
-		Attrs:     fmt.Sprintf(`{"tool.name":"%s","duration_ms":"%d","success":"%v"}`, event.ToolName, durationMs, !isError),
+		Attrs:     marshalAttrs(map[string]string{"tool.name": event.ToolName, "duration_ms": fmt.Sprintf("%d", durationMs), "success": fmt.Sprintf("%v", !isError)}),
 	}); err != nil {
 		debug.Log("failed to record tool event: %v", err)
 	} else {

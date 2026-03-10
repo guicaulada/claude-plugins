@@ -59,7 +59,7 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 			SpanID:    sess.SpanID,
 			Name:      "prompt.submit",
 			Timestamp: prompt.StartTime,
-			Attrs:     fmt.Sprintf(`{"prompt.index":"%d"}`, prompt.PromptIndex),
+			Attrs:     marshalAttrs(map[string]string{"prompt.index": fmt.Sprintf("%d", prompt.PromptIndex)}),
 		})
 	}
 

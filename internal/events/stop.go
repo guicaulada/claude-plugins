@@ -94,7 +94,7 @@ func HandleStop(env payload.Envelope) error {
 		SpanID:    sess.SpanID,
 		Name:      "prompt.stop",
 		Timestamp: endTime.UnixNano(),
-		Attrs:     fmt.Sprintf(`{"prompt.index":"%d","duration_ms":"%d"}`, prompt.PromptIndex, durationMs),
+		Attrs:     marshalAttrs(map[string]string{"prompt.index": fmt.Sprintf("%d", prompt.PromptIndex), "duration_ms": fmt.Sprintf("%d", durationMs)}),
 	})
 
 	// Emit event

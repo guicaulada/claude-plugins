@@ -102,7 +102,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 			SpanID:    sa.ParentSpanID,
 			Name:      "agent.start",
 			Timestamp: sa.StartTime,
-			Attrs:     fmt.Sprintf(`{"agent.type":"%s","agent.name":"%s"}`, event.AgentType, agentName),
+			Attrs:     marshalAttrs(map[string]string{"agent.type": event.AgentType, "agent.name": agentName}),
 		}); err != nil {
 			debug.Log("failed to record agent.start event: %v", err)
 		} else {
@@ -209,7 +209,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 		SpanID:    sa.ParentSpanID,
 		Name:      "agent.stop",
 		Timestamp: endTime.UnixNano(),
-		Attrs:     fmt.Sprintf(`{"agent.type":"%s","agent.name":"%s","duration_ms":"%d"}`, sa.AgentType, sa.AgentName, durationMs),
+		Attrs:     marshalAttrs(map[string]string{"agent.type": sa.AgentType, "agent.name": sa.AgentName, "duration_ms": fmt.Sprintf("%d", durationMs)}),
 	}); err != nil {
 		debug.Log("failed to record agent.stop event: %v", err)
 	} else {
