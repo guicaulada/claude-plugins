@@ -70,16 +70,15 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		debug.Log("set OTEL_EXPORTER_OTLP_PROTOCOL=%s from plugin override", protocol)
 	}
 
-	// If we have pre-loaded headers (from otelHeadersHelper cache) and
-	// OTEL_EXPORTER_OTLP_HEADERS is not set, set it as env var so all
-	// exporters (trace, metric, log) pick it up consistently.
-	if len(po.headers) > 0 && os.Getenv("OTEL_EXPORTER_OTLP_HEADERS") == "" {
+	// Resolve headers once for all exporters
+	headers := resolveHeaders(po, cfg)
+	if len(headers) > 0 && os.Getenv("OTEL_EXPORTER_OTLP_HEADERS") == "" {
 		var pairs []string
-		for k, v := range po.headers {
+		for k, v := range headers {
 			pairs = append(pairs, k+"="+v)
 		}
 		os.Setenv("OTEL_EXPORTER_OTLP_HEADERS", strings.Join(pairs, ","))
-		debug.Log("set OTEL_EXPORTER_OTLP_HEADERS from cached headers (%d pairs)", len(po.headers))
+		debug.Log("set OTEL_EXPORTER_OTLP_HEADERS (%d pairs)", len(headers))
 	}
 
 	res, err := newResource(ctx, cfg)
@@ -87,18 +86,18 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		return nil, err
 	}
 
-	tp, err := newTracerProvider(ctx, cfg, po, res)
+	tp, err := newTracerProvider(ctx, cfg, headers, res)
 	if err != nil {
 		return nil, err
 	}
 
-	mp, err := newMeterProvider(ctx, cfg, po, res)
+	mp, err := newMeterProvider(ctx, cfg, headers, res)
 	if err != nil {
 		tp.Shutdown(ctx)
 		return nil, err
 	}
 
-	lp, err := newLoggerProvider(ctx, cfg, po, res)
+	lp, err := newLoggerProvider(ctx, cfg, headers, res)
 	if err != nil {
 		tp.Shutdown(ctx)
 		mp.Shutdown(ctx)
@@ -159,8 +158,8 @@ func newResource(ctx context.Context, cfg config.Config) (*resource.Resource, er
 	)
 }
 
-func newTracerProvider(ctx context.Context, cfg config.Config, po providerOptions, res *resource.Resource) (*sdktrace.TracerProvider, error) {
-	opts := traceExporterOpts(cfg, po)
+func newTracerProvider(ctx context.Context, cfg config.Config, headers map[string]string, res *resource.Resource) (*sdktrace.TracerProvider, error) {
+	opts := traceExporterOpts(cfg, headers)
 	exp, err := otlptracehttp.New(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -176,8 +175,8 @@ func newTracerProvider(ctx context.Context, cfg config.Config, po providerOption
 	), nil
 }
 
-func newMeterProvider(ctx context.Context, cfg config.Config, po providerOptions, res *resource.Resource) (*sdkmetric.MeterProvider, error) {
-	opts := metricExporterOpts(cfg, po)
+func newMeterProvider(ctx context.Context, cfg config.Config, headers map[string]string, res *resource.Resource) (*sdkmetric.MeterProvider, error) {
+	opts := metricExporterOpts(cfg, headers)
 	exp, err := otlpmetrichttp.New(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -194,8 +193,8 @@ func newMeterProvider(ctx context.Context, cfg config.Config, po providerOptions
 	), nil
 }
 
-func newLoggerProvider(ctx context.Context, cfg config.Config, po providerOptions, res *resource.Resource) (*sdklog.LoggerProvider, error) {
-	opts := logExporterOpts(cfg, po)
+func newLoggerProvider(ctx context.Context, cfg config.Config, headers map[string]string, res *resource.Resource) (*sdklog.LoggerProvider, error) {
+	opts := logExporterOpts(cfg, headers)
 	exp, err := otlploghttp.New(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -209,7 +208,7 @@ func newLoggerProvider(ctx context.Context, cfg config.Config, po providerOption
 
 // Exporter option builders — apply plugin overrides, let SDK handle standard env vars.
 
-func traceExporterOpts(cfg config.Config, po providerOptions) []otlptracehttp.Option {
+func traceExporterOpts(cfg config.Config, headers map[string]string) []otlptracehttp.Option {
 	opts := []otlptracehttp.Option{
 		otlptracehttp.WithTimeout(2 * time.Second),
 	}
@@ -219,13 +218,13 @@ func traceExporterOpts(cfg config.Config, po providerOptions) []otlptracehttp.Op
 			opts = append(opts, otlptracehttp.WithInsecure())
 		}
 	}
-	if headers := resolveHeaders(po, cfg); len(headers) > 0 {
+	if len(headers) > 0 {
 		opts = append(opts, otlptracehttp.WithHeaders(headers))
 	}
 	return opts
 }
 
-func metricExporterOpts(cfg config.Config, po providerOptions) []otlpmetrichttp.Option {
+func metricExporterOpts(cfg config.Config, headers map[string]string) []otlpmetrichttp.Option {
 	opts := []otlpmetrichttp.Option{
 		otlpmetrichttp.WithTimeout(2 * time.Second),
 	}
@@ -235,7 +234,7 @@ func metricExporterOpts(cfg config.Config, po providerOptions) []otlpmetrichttp.
 			opts = append(opts, otlpmetrichttp.WithInsecure())
 		}
 	}
-	if headers := resolveHeaders(po, cfg); len(headers) > 0 {
+	if len(headers) > 0 {
 		opts = append(opts, otlpmetrichttp.WithHeaders(headers))
 	}
 	// Temporality: plugin override > standard env var > SDK default
@@ -245,7 +244,7 @@ func metricExporterOpts(cfg config.Config, po providerOptions) []otlpmetrichttp.
 	return opts
 }
 
-func logExporterOpts(cfg config.Config, po providerOptions) []otlploghttp.Option {
+func logExporterOpts(cfg config.Config, headers map[string]string) []otlploghttp.Option {
 	opts := []otlploghttp.Option{
 		otlploghttp.WithTimeout(2 * time.Second),
 	}
@@ -255,7 +254,7 @@ func logExporterOpts(cfg config.Config, po providerOptions) []otlploghttp.Option
 			opts = append(opts, otlploghttp.WithInsecure())
 		}
 	}
-	if headers := resolveHeaders(po, cfg); len(headers) > 0 {
+	if len(headers) > 0 {
 		opts = append(opts, otlploghttp.WithHeaders(headers))
 	}
 	return opts
@@ -263,16 +262,9 @@ func logExporterOpts(cfg config.Config, po providerOptions) []otlploghttp.Option
 
 func resolveHeaders(po providerOptions, cfg config.Config) map[string]string {
 	if len(po.headers) > 0 {
-		debug.Log("resolveHeaders: using %d pre-loaded headers", len(po.headers))
 		return po.headers
 	}
-	pluginHeaders := cfg.PluginHeaders()
-	if len(pluginHeaders) > 0 {
-		debug.Log("resolveHeaders: using %d plugin headers", len(pluginHeaders))
-		return pluginHeaders
-	}
-	debug.Log("resolveHeaders: no headers available")
-	return nil
+	return cfg.PluginHeaders()
 }
 
 func metricTemporality(cfg config.Config) sdkmetric.TemporalitySelector {
