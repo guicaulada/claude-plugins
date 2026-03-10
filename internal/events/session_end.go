@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -116,9 +117,11 @@ func HandleSessionEnd(env payload.Envelope) error {
 
 	// Emit event
 	provider.EmitEvent("claude_code.session.end", sess.TraceID, sess.SpanID, map[string]string{
-		"claude_code.session.id":         env.SessionID,
-		"claude_code.session.end_reason": event.Reason,
-		"claude_code.session.cwd":        sess.Cwd,
+		"claude_code.session.id":          env.SessionID,
+		"claude_code.session.end_reason":  event.Reason,
+		"claude_code.session.cwd":         sess.Cwd,
+		"claude_code.session.duration_ms": fmt.Sprintf("%d", durationMs),
+		"claude_code.session.start_type":  sess.StartType,
 	})
 
 	// Emit metric

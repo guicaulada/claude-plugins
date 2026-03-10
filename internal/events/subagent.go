@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -169,10 +170,11 @@ func HandleSubagentStop(env payload.Envelope) error {
 
 	// Emit event
 	provider.EmitEvent("claude_code.agent.stop", sess.TraceID, sa.SpanID, map[string]string{
-		"claude_code.session.id": env.SessionID,
-		"claude_code.agent.type": sa.AgentType,
-		"claude_code.agent.name": sa.AgentName,
-		"claude_code.agent.id":   sa.AgentID,
+		"claude_code.session.id":        env.SessionID,
+		"claude_code.agent.type":        sa.AgentType,
+		"claude_code.agent.name":        sa.AgentName,
+		"claude_code.agent.id":          sa.AgentID,
+		"claude_code.agent.duration_ms": fmt.Sprintf("%d", durationMs),
 	})
 
 	// Emit metric

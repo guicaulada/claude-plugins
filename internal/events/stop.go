@@ -68,9 +68,10 @@ func HandleStop(env payload.Envelope) error {
 
 	// Emit event
 	provider.EmitEvent("claude_code.prompt.stop", sess.TraceID, prompt.SpanID, map[string]string{
-		"claude_code.session.id":      env.SessionID,
-		"claude_code.prompt.index":    fmt.Sprintf("%d", prompt.PromptIndex),
-		"claude_code.permission_mode": env.PermissionMode,
+		"claude_code.session.id":         env.SessionID,
+		"claude_code.prompt.index":       fmt.Sprintf("%d", prompt.PromptIndex),
+		"claude_code.prompt.duration_ms": fmt.Sprintf("%d", durationMs),
+		"claude_code.permission_mode":    env.PermissionMode,
 	})
 
 	// Emit metric

@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
 
@@ -249,10 +250,22 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		"claude_code.session.id":      env.SessionID,
 		"claude_code.tool.name":       event.ToolName,
 		"claude_code.tool.use_id":     event.ToolUseID,
+		"claude_code.tool.duration_ms": fmt.Sprintf("%d", durationMs),
 		"claude_code.permission_mode": env.PermissionMode,
 	}
-	if isError && errMsg != "" {
-		eventAttrs["claude_code.error.message"] = errMsg
+	if tool.FilePath != "" {
+		fi := fileinfo.FromPath(tool.FilePath)
+		eventAttrs["claude_code.file.path"] = fi.Path
+		eventAttrs["claude_code.file.extension"] = fi.Extension
+		if fi.Language != "" {
+			eventAttrs["claude_code.file.language"] = fi.Language
+		}
+	}
+	if isError {
+		if errMsg != "" {
+			eventAttrs["claude_code.error.message"] = errMsg
+		}
+		eventAttrs["claude_code.error.is_interrupt"] = fmt.Sprintf("%v", isInterrupt)
 	}
 	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, eventAttrs)
 
