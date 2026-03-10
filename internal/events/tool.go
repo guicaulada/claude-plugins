@@ -245,12 +245,16 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	if isError {
 		eventName = "claude_code.tool.error"
 	}
-	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, map[string]string{
+	eventAttrs := map[string]string{
 		"claude_code.session.id":      env.SessionID,
 		"claude_code.tool.name":       event.ToolName,
 		"claude_code.tool.use_id":     event.ToolUseID,
 		"claude_code.permission_mode": env.PermissionMode,
-	})
+	}
+	if isError && errMsg != "" {
+		eventAttrs["claude_code.error.message"] = errMsg
+	}
+	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, eventAttrs)
 
 	// Emit metrics
 	metricAttrs := []attribute.KeyValue{
