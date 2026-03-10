@@ -66,7 +66,7 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 	// Emit event and metric
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err == nil {
 		defer provider.Shutdown(ctx)
 

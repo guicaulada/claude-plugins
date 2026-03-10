@@ -42,7 +42,7 @@ func HandlePermissionRequest(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func HandleNotification(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func HandleTaskCompleted(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func HandleInstructionsLoaded(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -266,7 +266,7 @@ func HandleConfigChange(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func HandleWorktreeCreate(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -357,7 +357,7 @@ func HandleWorktreeRemove(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -402,7 +402,7 @@ func HandleTeammateIdle(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -450,7 +450,7 @@ func HandlePreCompact(env payload.Envelope) error {
 
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}

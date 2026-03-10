@@ -47,7 +47,7 @@ func HandleSessionEnd(env payload.Envelope) error {
 	cfg := config.Load()
 
 	debug.Log("session end: creating OTel provider")
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		debug.Log("session end: failed to create provider: %v", err)
 		store.Close()

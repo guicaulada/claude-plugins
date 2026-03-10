@@ -111,7 +111,7 @@ func HandlePreToolUse(env payload.Envelope) error {
 	// Emit event
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err == nil {
 		defer provider.Shutdown(ctx)
 
@@ -189,7 +189,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	// Export the tool span
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}

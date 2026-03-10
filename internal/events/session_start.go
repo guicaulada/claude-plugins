@@ -58,10 +58,10 @@ func HandleSessionStart(env payload.Envelope) error {
 		_ = store.SetCache("git_head_sha", gitCtx.HeadSHA)
 	}
 
-	// Emit event and metric (newProviderFromState handles header caching)
+	// Emit event and metric (newProvider handles header caching)
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		debug.Log("session start: failed to create provider: %v", err)
 	} else {

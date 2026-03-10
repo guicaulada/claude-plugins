@@ -85,7 +85,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 	// Emit event and metric
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err == nil {
 		defer provider.Shutdown(ctx)
 
@@ -150,7 +150,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 	// Export the subagent span
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}

@@ -37,7 +37,7 @@ func HandleStop(env payload.Envelope) error {
 	// Create and export the prompt span
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := newProviderFromState(ctx, cfg, store)
+	provider, err := newProvider(ctx, cfg)
 	if err != nil {
 		return err
 	}
