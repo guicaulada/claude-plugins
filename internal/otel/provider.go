@@ -63,6 +63,18 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		o(&po)
 	}
 
+	// If we have pre-loaded headers (from otelHeadersHelper cache) and
+	// OTEL_EXPORTER_OTLP_HEADERS is not set, set it as env var so all
+	// exporters (trace, metric, log) pick it up consistently.
+	if len(po.headers) > 0 && os.Getenv("OTEL_EXPORTER_OTLP_HEADERS") == "" {
+		var pairs []string
+		for k, v := range po.headers {
+			pairs = append(pairs, k+"="+v)
+		}
+		os.Setenv("OTEL_EXPORTER_OTLP_HEADERS", strings.Join(pairs, ","))
+		debug.Log("set OTEL_EXPORTER_OTLP_HEADERS from cached headers (%d pairs)", len(po.headers))
+	}
+
 	res, err := newResource(ctx, cfg)
 	if err != nil {
 		return nil, err
