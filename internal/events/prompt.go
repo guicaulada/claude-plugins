@@ -73,6 +73,9 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 		sess, _ := store.GetSession(env.SessionID)
 		logAttrs := commonLogAttrs(env)
 		logAttrs["claude_code.prompt.index"] = fmt.Sprintf("%d", prompt.PromptIndex)
+		if cfg.LogUserPrompts && event.Prompt != "" {
+			logAttrs["claude_code.prompt.content"] = event.Prompt
+		}
 		provider.EmitEvent("claude_code.prompt.submit", sess.TraceID, prompt.SpanID, logAttrs)
 
 		metricAttrs := []attribute.KeyValue{

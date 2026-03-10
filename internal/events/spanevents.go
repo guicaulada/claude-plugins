@@ -1,6 +1,9 @@
 package events
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 // marshalAttrs safely serializes a map to JSON for span event storage.
 func marshalAttrs(attrs map[string]string) string {
@@ -9,4 +12,9 @@ func marshalAttrs(attrs map[string]string) string {
 		return "{}"
 	}
 	return string(data)
+}
+
+// currentTimestamp returns the current time as UnixNano.
+func currentTimestamp() int64 {
+	return time.Now().UnixNano()
 }

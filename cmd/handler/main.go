@@ -23,6 +23,15 @@ func newRegistry() *dispatch.Registry {
 	r.Register("SubagentStart", events.HandleSubagentStart)
 	r.Register("SubagentStop", events.HandleSubagentStop)
 	r.Register("Stop", events.HandleStop)
+	r.Register("PermissionRequest", events.HandlePermissionRequest)
+	r.Register("Notification", events.HandleNotification)
+	r.Register("TaskCompleted", events.HandleTaskCompleted)
+	r.Register("InstructionsLoaded", events.HandleInstructionsLoaded)
+	r.Register("ConfigChange", events.HandleConfigChange)
+	r.Register("WorktreeCreate", events.HandleWorktreeCreate)
+	r.Register("WorktreeRemove", events.HandleWorktreeRemove)
+	r.Register("TeammateIdle", events.HandleTeammateIdle)
+	r.Register("PreCompact", events.HandlePreCompact)
 	r.Register("SessionEnd", events.HandleSessionEnd)
 	return r
 }
