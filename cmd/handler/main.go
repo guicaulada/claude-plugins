@@ -14,13 +14,18 @@ import (
 )
 
 func main() {
+	code := 0
 	defer func() {
 		if r := recover(); r != nil {
 			debug.Log("panic recovered: %v", r)
 		}
-		os.Exit(0)
+		os.Exit(code)
 	}()
 
+	run()
+}
+
+func run() {
 	cfg := config.Load()
 	if !cfg.Enabled {
 		return
