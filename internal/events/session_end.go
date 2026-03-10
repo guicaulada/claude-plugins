@@ -42,20 +42,6 @@ func HandleSessionEnd(env payload.Envelope) error {
 
 	debug.Log("session end: found state trace=%s", sess.TraceID)
 
-	// Read aggregated counters
-	promptCount, _ := store.GetCounter(env.SessionID, "prompt_count")
-	toolCount, _ := store.GetCounter(env.SessionID, "tool_count")
-	errorCount, _ := store.GetCounter(env.SessionID, "error_count")
-	subagentCount, _ := store.GetCounter(env.SessionID, "subagent_count")
-	linesAdded, _ := store.GetCounter(env.SessionID, "lines_added")
-	linesRemoved, _ := store.GetCounter(env.SessionID, "lines_removed")
-	commitCount, _ := store.GetCounter(env.SessionID, "commit_count")
-	branchCount, _ := store.GetCounter(env.SessionID, "branch_count")
-	repoCount, _ := store.GetCounter(env.SessionID, "repo_count")
-
-	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d",
-		promptCount, toolCount, errorCount, subagentCount, linesAdded, linesRemoved, commitCount, branchCount, repoCount)
-
 	// Export the deferred session root span
 	ctx := context.Background()
 	cfg := config.Load()
@@ -73,6 +59,97 @@ func HandleSessionEnd(env payload.Envelope) error {
 	endTime := time.Now()
 	durationMs := endTime.Sub(startTime).Milliseconds()
 
+	builder := pluginotel.NewSpanBuilder(provider.Tracer())
+
+	// Export orphaned subagents (interrupted, never got SubagentStop)
+	if orphanedAgents, err := store.GetOrphanedSubagents(env.SessionID); err == nil && len(orphanedAgents) > 0 {
+		debug.Log("session end: exporting %d orphaned subagent spans", len(orphanedAgents))
+		for _, sa := range orphanedAgents {
+			saCtx, err := pluginotel.ChildContext(sess.TraceID, sa.ParentSpanID, sa.SpanID)
+			if err != nil {
+				continue
+			}
+			// Load any events recorded for this subagent
+			var saEvents []pluginotel.SpanEvent
+			if recorded, err := store.GetEvents(env.SessionID, sa.SpanID); err == nil {
+				for _, re := range recorded {
+					se := pluginotel.SpanEvent{Name: re.Name, Time: time.Unix(0, re.Timestamp)}
+					if re.Attrs != "" {
+						var attrMap map[string]string
+						if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
+							for k, v := range attrMap {
+								se.Attrs = append(se.Attrs, attribute.String(k, v))
+							}
+						}
+					}
+					saEvents = append(saEvents, se)
+				}
+			}
+			saAttrs := []attribute.KeyValue{
+				attribute.String("claude_code.session.id", env.SessionID),
+				attribute.String("claude_code.agent.type", sa.AgentType),
+				attribute.String("claude_code.agent.name", sa.AgentName),
+				attribute.String("claude_code.agent.id", sa.AgentID),
+				attribute.Bool("claude_code.interrupted", true),
+			}
+			builder.CreateErrorSpan(saCtx, "agent:"+sa.AgentType, time.Unix(0, sa.StartTime), endTime, saAttrs, "interrupted", saEvents...)
+			_ = store.IncrementCounter(env.SessionID, "interrupted_count")
+		}
+	}
+
+	// Export orphaned tools (interrupted, never got PostToolUse)
+	if orphanedTools, err := store.GetOrphanedTools(env.SessionID); err == nil && len(orphanedTools) > 0 {
+		debug.Log("session end: exporting %d orphaned tool spans", len(orphanedTools))
+		for _, tool := range orphanedTools {
+			toolCtx, err := pluginotel.ChildContext(sess.TraceID, tool.ParentSpanID, tool.SpanID)
+			if err != nil {
+				continue
+			}
+			// Load any events recorded for this tool
+			var toolEvents []pluginotel.SpanEvent
+			if recorded, err := store.GetEvents(env.SessionID, tool.SpanID); err == nil {
+				for _, re := range recorded {
+					se := pluginotel.SpanEvent{Name: re.Name, Time: time.Unix(0, re.Timestamp)}
+					if re.Attrs != "" {
+						var attrMap map[string]string
+						if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
+							for k, v := range attrMap {
+								se.Attrs = append(se.Attrs, attribute.String(k, v))
+							}
+						}
+					}
+					toolEvents = append(toolEvents, se)
+				}
+			}
+			toolAttrs := []attribute.KeyValue{
+				attribute.String("claude_code.session.id", env.SessionID),
+				attribute.String("claude_code.tool.name", tool.ToolName),
+				attribute.String("claude_code.tool.use_id", tool.ToolUseID),
+				attribute.Bool("claude_code.interrupted", true),
+			}
+			if tool.FilePath != "" {
+				toolAttrs = append(toolAttrs, attribute.String("claude_code.file.path", tool.FilePath))
+			}
+			builder.CreateErrorSpan(toolCtx, "tool:"+tool.ToolName, time.Unix(0, tool.StartTime), endTime, toolAttrs, "interrupted", toolEvents...)
+			_ = store.IncrementCounter(env.SessionID, "interrupted_count")
+		}
+	}
+
+	// Read aggregated counters (after orphan export so interrupted_count is accurate)
+	promptCount, _ := store.GetCounter(env.SessionID, "prompt_count")
+	toolCount, _ := store.GetCounter(env.SessionID, "tool_count")
+	errorCount, _ := store.GetCounter(env.SessionID, "error_count")
+	subagentCount, _ := store.GetCounter(env.SessionID, "subagent_count")
+	linesAdded, _ := store.GetCounter(env.SessionID, "lines_added")
+	linesRemoved, _ := store.GetCounter(env.SessionID, "lines_removed")
+	commitCount, _ := store.GetCounter(env.SessionID, "commit_count")
+	branchCount, _ := store.GetCounter(env.SessionID, "branch_count")
+	repoCount, _ := store.GetCounter(env.SessionID, "repo_count")
+	interruptedCount, _ := store.GetCounter(env.SessionID, "interrupted_count")
+
+	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d interrupted=%d",
+		promptCount, toolCount, errorCount, subagentCount, linesAdded, linesRemoved, commitCount, branchCount, repoCount, interruptedCount)
+
 	debug.Log("session end: creating root context trace=%s span=%s", sess.TraceID, sess.SpanID)
 	rootCtx, err := pluginotel.RootContext(sess.TraceID, sess.SpanID)
 	if err != nil {
@@ -81,7 +158,6 @@ func HandleSessionEnd(env payload.Envelope) error {
 		return err
 	}
 
-	builder := pluginotel.NewSpanBuilder(provider.Tracer())
 	attrs := []attribute.KeyValue{
 		attribute.String("claude_code.session.id", env.SessionID),
 		attribute.String("claude_code.session.start_type", sess.StartType),
@@ -96,6 +172,7 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attribute.Int64("claude_code.session.commit_count", commitCount),
 		attribute.Int64("claude_code.session.branch_count", branchCount),
 		attribute.Int64("claude_code.session.repo_count", repoCount),
+		attribute.Int64("claude_code.session.interrupted_count", interruptedCount),
 		attribute.Int64("claude_code.session.duration_ms", durationMs),
 	}
 
