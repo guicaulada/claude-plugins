@@ -125,10 +125,21 @@ func HandleSessionEnd(env payload.Envelope) error {
 	})
 
 	// Emit metric
-	provider.HistogramRecord(ctx, "claude_code.session.duration", float64(durationMs),
+	sessionDurationAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.session.start_type", sess.StartType),
 		attribute.String("claude_code.session.cwd", sess.Cwd),
-	)
+	}
+	if sess.GitRepoName != "" {
+		sessionDurationAttrs = append(sessionDurationAttrs,
+			attribute.String("vcs.repository.name", sess.GitRepoName),
+		)
+	}
+	if sess.GitBranch != "" {
+		sessionDurationAttrs = append(sessionDurationAttrs,
+			attribute.String("vcs.ref.head.name", sess.GitBranch),
+		)
+	}
+	provider.HistogramRecord(ctx, "claude_code.session.duration", float64(durationMs), sessionDurationAttrs...)
 
 	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d)",
 		env.SessionID, sess.TraceID, durationMs,

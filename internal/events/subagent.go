@@ -99,6 +99,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 
 		provider.CounterAdd(ctx, "claude_code.subagent.count", 1,
 			attribute.String("claude_code.agent.type", event.AgentType),
+			attribute.String("claude_code.agent.name", agentName),
 		)
 	}
 
@@ -180,6 +181,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 	// Emit metric
 	provider.HistogramRecord(ctx, "claude_code.subagent.duration", float64(durationMs),
 		attribute.String("claude_code.agent.type", sa.AgentType),
+		attribute.String("claude_code.agent.name", sa.AgentName),
 	)
 
 	debug.Log("subagent stop: session=%s agent=%s duration=%dms",

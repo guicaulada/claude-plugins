@@ -9,6 +9,7 @@ import (
 
 	"github.com/guicaulada/claude-code-otel-plugin/internal/config"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/debug"
+	gitpkg "github.com/guicaulada/claude-code-otel-plugin/internal/git"
 	pluginotel "github.com/guicaulada/claude-code-otel-plugin/internal/otel"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/payload"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/state"
@@ -75,9 +76,17 @@ func HandleStop(env payload.Envelope) error {
 	})
 
 	// Emit metric
-	provider.HistogramRecord(ctx, "claude_code.prompt.duration", float64(durationMs),
+	promptMetricAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.session.cwd", env.Cwd),
-	)
+	}
+	gitCtx := gitpkg.GetContext(env.Cwd)
+	if gitCtx.Branch != "" {
+		promptMetricAttrs = append(promptMetricAttrs, attribute.String("vcs.ref.head.name", gitCtx.Branch))
+	}
+	if gitCtx.RepoName != "" {
+		promptMetricAttrs = append(promptMetricAttrs, attribute.String("vcs.repository.name", gitCtx.RepoName))
+	}
+	provider.HistogramRecord(ctx, "claude_code.prompt.duration", float64(durationMs), promptMetricAttrs...)
 
 	debug.Log("stop: exported prompt span session=%s index=%d duration=%dms",
 		env.SessionID, prompt.PromptIndex, durationMs)

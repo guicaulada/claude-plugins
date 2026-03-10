@@ -270,38 +270,72 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, eventAttrs)
 
 	// Emit metrics
-	metricAttrs := []attribute.KeyValue{
+	toolMetricAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.tool.name", event.ToolName),
 		attribute.Bool("claude_code.tool.success", !isError),
+		attribute.String("claude_code.session.cwd", env.Cwd),
 	}
+	var fi fileinfo.Info
 	if tool.FilePath != "" {
-		fi := fileinfo.FromPath(tool.FilePath)
-		metricAttrs = append(metricAttrs, attribute.String("claude_code.file.extension", fi.Extension))
+		fi = fileinfo.FromPath(tool.FilePath)
+		toolMetricAttrs = append(toolMetricAttrs,
+			attribute.String("claude_code.file.extension", fi.Extension),
+		)
 		if fi.Language != "" {
-			metricAttrs = append(metricAttrs, attribute.String("claude_code.file.language", fi.Language))
+			toolMetricAttrs = append(toolMetricAttrs,
+				attribute.String("claude_code.file.language", fi.Language),
+			)
 		}
 	}
-	provider.CounterAdd(ctx, "claude_code.tool.count", 1, metricAttrs...)
-	provider.HistogramRecord(ctx, "claude_code.tool.duration", float64(durationMs),
+	provider.CounterAdd(ctx, "claude_code.tool.count", 1, toolMetricAttrs...)
+
+	durationAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.tool.name", event.ToolName),
-	)
+	}
+	if tool.FilePath != "" {
+		durationAttrs = append(durationAttrs,
+			attribute.String("claude_code.file.extension", fi.Extension),
+		)
+		if fi.Language != "" {
+			durationAttrs = append(durationAttrs,
+				attribute.String("claude_code.file.language", fi.Language),
+			)
+		}
+	}
+	provider.HistogramRecord(ctx, "claude_code.tool.duration", float64(durationMs), durationAttrs...)
 
 	if isError {
-		provider.CounterAdd(ctx, "claude_code.error.count", 1,
+		errorAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.tool.name", event.ToolName),
-		)
+		}
+		if errMsg != "" {
+			errorAttrs = append(errorAttrs, attribute.String("claude_code.error.message", errMsg))
+		}
+		provider.CounterAdd(ctx, "claude_code.error.count", 1, errorAttrs...)
 	}
 
 	if linesAdded > 0 || linesRemoved > 0 {
+		lineAttrs := []attribute.KeyValue{
+			attribute.String("claude_code.session.cwd", env.Cwd),
+		}
 		if tool.FilePath != "" {
-			fi := fileinfo.FromPath(tool.FilePath)
-			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesAdded),
-				attribute.String("type", "added"),
+			lineAttrs = append(lineAttrs,
 				attribute.String("claude_code.file.extension", fi.Extension),
 			)
+			if fi.Language != "" {
+				lineAttrs = append(lineAttrs,
+					attribute.String("claude_code.file.language", fi.Language),
+				)
+			}
+		}
+		if linesAdded > 0 {
+			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesAdded),
+				append(lineAttrs, attribute.String("type", "added"))...,
+			)
+		}
+		if linesRemoved > 0 {
 			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesRemoved),
-				attribute.String("type", "removed"),
-				attribute.String("claude_code.file.extension", fi.Extension),
+				append(lineAttrs, attribute.String("type", "removed"))...,
 			)
 		}
 	}

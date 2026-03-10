@@ -87,10 +87,21 @@ func HandleSessionStart(env payload.Envelope) error {
 			"vcs.repository.owner":           gitCtx.RepoOwner,
 		})
 
-		provider.CounterAdd(ctx, "claude_code.session.count", 1,
+		sessionMetricAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.session.start_type", event.Source),
 			attribute.String("claude_code.session.cwd", env.Cwd),
-		)
+		}
+		if gitCtx.RepoName != "" {
+			sessionMetricAttrs = append(sessionMetricAttrs,
+				attribute.String("vcs.repository.name", gitCtx.RepoName),
+			)
+		}
+		if gitCtx.Branch != "" {
+			sessionMetricAttrs = append(sessionMetricAttrs,
+				attribute.String("vcs.ref.head.name", gitCtx.Branch),
+			)
+		}
+		provider.CounterAdd(ctx, "claude_code.session.count", 1, sessionMetricAttrs...)
 	}
 
 	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s)",
