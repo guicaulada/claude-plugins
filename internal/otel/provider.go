@@ -93,14 +93,14 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 
 	mp, err := newMeterProvider(ctx, cfg, headers, res)
 	if err != nil {
-		tp.Shutdown(ctx)
+		_ = tp.Shutdown(ctx)
 		return nil, err
 	}
 
 	lp, err := newLoggerProvider(ctx, cfg, headers, res)
 	if err != nil {
-		tp.Shutdown(ctx)
-		mp.Shutdown(ctx)
+		_ = tp.Shutdown(ctx)
+		_ = mp.Shutdown(ctx)
 		return nil, err
 	}
 

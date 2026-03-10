@@ -39,12 +39,12 @@ func (g *fixedIDGenerator) NewSpanID(ctx context.Context, _ trace.TraceID) trace
 
 func randomTraceID() trace.TraceID {
 	var id trace.TraceID
-	rand.Read(id[:])
+	_, _ = rand.Read(id[:])
 	return id
 }
 
 func randomSpanID() trace.SpanID {
 	var id trace.SpanID
-	rand.Read(id[:])
+	_, _ = rand.Read(id[:])
 	return id
 }

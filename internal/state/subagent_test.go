@@ -7,7 +7,7 @@ func TestSubagentCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	defer store.Cleanup()
+	defer func() { _ = store.Cleanup() }()
 
 	// No subagent initially
 	sa, err := store.GetSubagent("agent-1")

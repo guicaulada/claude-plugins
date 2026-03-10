@@ -7,7 +7,7 @@ func TestPromptCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	defer store.Cleanup()
+	defer func() { _ = store.Cleanup() }()
 
 	// No prompts initially
 	p, err := store.GetCurrentPrompt("s1")

@@ -3,7 +3,6 @@ package events
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -81,6 +80,6 @@ func HandleSessionStart(env payload.Envelope) error {
 
 	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s)",
 		env.SessionID, sess.TraceID, event.Source, env.Cwd,
-		gitCtx.Branch, gitCtx.RepoOwner, fmt.Sprintf("%s", gitCtx.RepoName))
+		gitCtx.Branch, gitCtx.RepoOwner, gitCtx.RepoName)
 	return nil
 }

@@ -7,7 +7,7 @@ func TestToolCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	defer store.Cleanup()
+	defer func() { _ = store.Cleanup() }()
 
 	// No tool initially
 	tool, err := store.GetTool("tool-1")

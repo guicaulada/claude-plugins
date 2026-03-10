@@ -9,7 +9,7 @@ func TestOpenAndCreateSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	defer store.Cleanup()
+	defer func() { _ = store.Cleanup() }()
 
 	// Verify tables exist by running queries
 	tables := []string{"sessions", "prompts", "tools", "subagents", "counters"}
@@ -27,7 +27,7 @@ func TestSessionCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	defer store.Cleanup()
+	defer func() { _ = store.Cleanup() }()
 
 	sess := Session{
 		SessionID:      "s1",
@@ -68,7 +68,7 @@ func TestGetSessionNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	defer store.Cleanup()
+	defer func() { _ = store.Cleanup() }()
 
 	got, err := store.GetSession("nonexistent")
 	if err != nil {
@@ -84,7 +84,7 @@ func TestCounters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open store: %v", err)
 	}
-	defer store.Cleanup()
+	defer func() { _ = store.Cleanup() }()
 
 	sid := "s1"
 
@@ -132,7 +132,7 @@ func TestCleanup(t *testing.T) {
 	// Clean up the reopened one
 	store2, _ := Open("test-session-cleanup")
 	if store2 != nil {
-		store2.Cleanup()
+		_ = store2.Cleanup()
 	}
 	_ = dir
 }
