@@ -24,4 +24,4 @@ claude plugin add https://github.com/guicaulada/claude-plugins --plugin otel
 
 ## License
 
-Apache-2.0
+Please see each linked plugin for the relevant LICENSE file.

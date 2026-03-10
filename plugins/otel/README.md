@@ -1,4 +1,4 @@
-# claude-code-otel-plugin
+# otel
 
 OpenTelemetry traces, metrics, and logs from Claude Code hook lifecycle events.
 
