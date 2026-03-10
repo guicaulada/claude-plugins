@@ -1,7 +1,6 @@
 package fileinfo
 
 import (
-	"os"
 	"testing"
 )
 
@@ -9,57 +8,35 @@ func TestFromPath(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     string
+		wantPath string
 		wantExt  string
 		wantLang string
 	}{
-		{"Go file", "/home/user/project/main.go", ".go", "Go"},
-		{"Python file", "/tmp/script.py", ".py", "Python"},
-		{"TypeScript", "/home/user/app.ts", ".ts", "TypeScript"},
-		{"TSX", "/home/user/App.tsx", ".tsx", "TSX"},
-		{"Terraform", "/home/user/main.tf", ".tf", "HCL"},
-		{"Makefile", "/home/user/project/Makefile", "Makefile", "Makefile"},
-		{"Dockerfile", "/home/user/project/Dockerfile", "Dockerfile", "Dockerfile"},
-		{"YAML yml", "/home/user/config.yml", ".yml", "YAML"},
-		{"YAML yaml", "/home/user/config.yaml", ".yaml", "YAML"},
-		{"JSON", "/home/user/data.json", ".json", "JSON"},
-		{"Markdown", "/home/user/README.md", ".md", "Markdown"},
-		{"No extension unknown", "/home/user/project/somefile", "somefile", ""},
+		{"Go file", "/home/user/project/main.go", "/home/user/project/main.go", ".go", "Go"},
+		{"Python file", "/tmp/script.py", "/tmp/script.py", ".py", "Python"},
+		{"TypeScript", "/home/user/app.ts", "/home/user/app.ts", ".ts", "TypeScript"},
+		{"TSX", "/home/user/App.tsx", "/home/user/App.tsx", ".tsx", "TSX"},
+		{"Terraform", "/home/user/main.tf", "/home/user/main.tf", ".tf", "HCL"},
+		{"Makefile", "/home/user/project/Makefile", "/home/user/project/Makefile", "Makefile", "Makefile"},
+		{"Dockerfile", "/home/user/project/Dockerfile", "/home/user/project/Dockerfile", "Dockerfile", "Dockerfile"},
+		{"YAML yml", "/home/user/config.yml", "/home/user/config.yml", ".yml", "YAML"},
+		{"YAML yaml", "/home/user/config.yaml", "/home/user/config.yaml", ".yaml", "YAML"},
+		{"JSON", "/home/user/data.json", "/home/user/data.json", ".json", "JSON"},
+		{"Markdown", "/home/user/README.md", "/home/user/README.md", ".md", "Markdown"},
+		{"No extension", "/home/user/project/somefile", "/home/user/project/somefile", "somefile", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			info := FromPath(tt.path)
+			if info.Path != tt.wantPath {
+				t.Errorf("Path = %q, want %q", info.Path, tt.wantPath)
+			}
 			if info.Extension != tt.wantExt {
 				t.Errorf("Extension = %q, want %q", info.Extension, tt.wantExt)
 			}
 			if info.Language != tt.wantLang {
 				t.Errorf("Language = %q, want %q", info.Language, tt.wantLang)
-			}
-		})
-	}
-}
-
-func TestRelativizePath(t *testing.T) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		t.Skip("cannot get home dir")
-	}
-
-	tests := []struct {
-		name string
-		path string
-		want string
-	}{
-		{"under home", home + "/Work/project/file.go", "~/Work/project/file.go"},
-		{"outside home", "/tmp/file.go", "/tmp/file.go"},
-		{"home root", home + "/file.go", "~/file.go"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := relativizePath(tt.path)
-			if got != tt.want {
-				t.Errorf("relativizePath(%q) = %q, want %q", tt.path, got, tt.want)
 			}
 		})
 	}

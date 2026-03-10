@@ -1,7 +1,6 @@
 package fileinfo
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -10,7 +9,7 @@ import (
 
 // Info holds metadata about a file path.
 type Info struct {
-	Path      string // Relative to $HOME using ~, or absolute
+	Path      string // Absolute file path as-is
 	Extension string // Raw extension (e.g., ".go") or filename (e.g., "Makefile")
 	Language  string // Language name via go-enry (e.g., "Go", "Python")
 }
@@ -18,7 +17,7 @@ type Info struct {
 // FromPath extracts file metadata from an absolute file path.
 func FromPath(absPath string) Info {
 	info := Info{
-		Path: relativizePath(absPath),
+		Path: absPath,
 	}
 
 	base := filepath.Base(absPath)
@@ -43,23 +42,6 @@ func FromPath(absPath string) Info {
 	info.Language = lang
 
 	return info
-}
-
-// relativizePath converts an absolute path to ~ relative if under $HOME.
-func relativizePath(absPath string) string {
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return absPath
-	}
-
-	if strings.HasPrefix(absPath, home) {
-		rel, err := filepath.Rel(home, absPath)
-		if err == nil {
-			return "~/" + rel
-		}
-	}
-
-	return absPath
 }
 
 // languageOverrides fixes go-enry's ambiguous extension results.

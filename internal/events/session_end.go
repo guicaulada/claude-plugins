@@ -84,7 +84,7 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attribute.String("claude_code.session.start_type", sess.StartType),
 		attribute.String("claude_code.session.cwd", sess.Cwd),
 		attribute.String("claude_code.session.end_reason", event.Reason),
-		attribute.String("claude_code.permission_mode", env.PermissionMode),
+		attribute.String("claude_code.permission_mode", sess.PermissionMode),
 		attribute.Int64("claude_code.session.prompt_count", promptCount),
 		attribute.Int64("claude_code.session.tool_count", toolCount),
 		attribute.Int64("claude_code.session.error_count", errorCount),
