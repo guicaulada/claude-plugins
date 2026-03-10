@@ -1,7 +1,6 @@
 package events
 
 import (
-	"github.com/guicaulada/claude-code-otel-plugin/internal/config"
 	gitpkg "github.com/guicaulada/claude-code-otel-plugin/internal/git"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/payload"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/state"
@@ -69,19 +68,6 @@ func vcsMetricAttrs(cwd string) []attribute.KeyValue {
 	}
 	if gitCtx.RepoOwner != "" {
 		attrs = append(attrs, attribute.String("vcs.repository.owner", gitCtx.RepoOwner))
-	}
-	return attrs
-}
-
-// cardinalityMetricAttrs returns optional metric attributes controlled by
-// OTEL_METRICS_INCLUDE_* env vars.
-func cardinalityMetricAttrs(cfg config.Config, sessionID string) []attribute.KeyValue {
-	var attrs []attribute.KeyValue
-	if cfg.IncludeSessionID {
-		attrs = append(attrs, attribute.String("session.id", sessionID))
-	}
-	if cfg.IncludeVersion {
-		attrs = append(attrs, attribute.String("app.version", cfg.Version))
 	}
 	return attrs
 }

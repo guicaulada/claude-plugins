@@ -117,7 +117,7 @@ func HandlePreToolUse(env payload.Envelope) error {
 
 		sess, _ := store.GetSession(env.SessionID)
 		startLogAttrs := commonLogAttrs(env)
-		startLogAttrs["claude_code.tool.name"] = sanitizeToolName(event.ToolName, cfg)
+		startLogAttrs["claude_code.tool.name"] = event.ToolName
 		startLogAttrs["claude_code.tool.use_id"] = event.ToolUseID
 		if tool.FilePath != "" {
 			startFi := fileinfo.FromPath(tool.FilePath)
@@ -136,7 +136,7 @@ func HandlePreToolUse(env payload.Envelope) error {
 		SpanID:    parentSpanID,
 		Name:      "tool.start",
 		Timestamp: tool.StartTime,
-		Attrs:     marshalAttrs(map[string]string{"tool.name": sanitizeToolName(event.ToolName, cfg)}),
+		Attrs:     marshalAttrs(map[string]string{"tool.name": event.ToolName}),
 	}); err != nil {
 		debug.Log("failed to record tool.start event: %v", err)
 	}
@@ -204,11 +204,10 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	startTime := time.Unix(0, tool.StartTime)
 	endTime := time.Now()
 
-	displayName := sanitizeToolName(event.ToolName, cfg)
-	spanName := "tool:" + displayName
+	spanName := "tool:" + event.ToolName
 	attrs := []attribute.KeyValue{
 		attribute.String("claude_code.session.id", env.SessionID),
-		attribute.String("claude_code.tool.name", displayName),
+		attribute.String("claude_code.tool.name", event.ToolName),
 		attribute.String("claude_code.tool.use_id", event.ToolUseID),
 		attribute.String("claude_code.permission_mode", env.PermissionMode),
 	}
@@ -286,7 +285,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		SpanID:    tool.ParentSpanID,
 		Name:      "tool.end",
 		Timestamp: endTime.UnixNano(),
-		Attrs:     marshalAttrs(map[string]string{"tool.name": displayName, "duration_ms": fmt.Sprintf("%d", durationMs), "success": fmt.Sprintf("%v", !isError)}),
+		Attrs:     marshalAttrs(map[string]string{"tool.name": event.ToolName, "duration_ms": fmt.Sprintf("%d", durationMs), "success": fmt.Sprintf("%v", !isError)}),
 	}); err != nil {
 		debug.Log("failed to record tool event: %v", err)
 	} else {
@@ -299,7 +298,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		eventName = "claude_code.tool.error"
 	}
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.tool.name"] = displayName
+	logAttrs["claude_code.tool.name"] = event.ToolName
 	logAttrs["claude_code.tool.use_id"] = event.ToolUseID
 	logAttrs["claude_code.tool.duration_ms"] = fmt.Sprintf("%d", durationMs)
 	logAttrs["claude_code.tool.success"] = fmt.Sprintf("%v", !isError)
@@ -338,7 +337,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 
 	// tool.count
 	toolCountAttrs := []attribute.KeyValue{
-		attribute.String("claude_code.tool.name", displayName),
+		attribute.String("claude_code.tool.name", event.ToolName),
 		attribute.Bool("claude_code.tool.success", !isError),
 		attribute.String("claude_code.session.cwd", env.Cwd),
 	}
@@ -348,7 +347,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 
 	// tool.duration
 	toolDurationAttrs := []attribute.KeyValue{
-		attribute.String("claude_code.tool.name", displayName),
+		attribute.String("claude_code.tool.name", event.ToolName),
 		attribute.Bool("claude_code.tool.success", !isError),
 		attribute.String("claude_code.session.cwd", env.Cwd),
 	}
@@ -359,7 +358,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	// error.count
 	if isError {
 		errorAttrs := []attribute.KeyValue{
-			attribute.String("claude_code.tool.name", displayName),
+			attribute.String("claude_code.tool.name", event.ToolName),
 			attribute.Bool("claude_code.error.is_interrupt", isInterrupt),
 		}
 		errorAttrs = append(errorAttrs, vcsAttrs...)

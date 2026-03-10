@@ -33,11 +33,12 @@ const (
 
 // Provider wraps OTel TracerProvider, MeterProvider, and LoggerProvider.
 type Provider struct {
-	tp     *sdktrace.TracerProvider
-	mp     *sdkmetric.MeterProvider
-	lp     *sdklog.LoggerProvider
-	tracer trace.Tracer
-	logger otellog.Logger
+	tp              *sdktrace.TracerProvider
+	mp              *sdkmetric.MeterProvider
+	lp              *sdklog.LoggerProvider
+	tracer          trace.Tracer
+	logger          otellog.Logger
+	metricBaseAttrs []attribute.KeyValue // cardinality-controlled attrs for all metrics
 }
 
 // ProviderOption configures the OTel provider.
@@ -104,12 +105,19 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		return nil, err
 	}
 
+	// Build cardinality-controlled metric base attrs
+	var metricBaseAttrs []attribute.KeyValue
+	if cfg.IncludeVersion {
+		metricBaseAttrs = append(metricBaseAttrs, attribute.String("app.version", cfg.Version))
+	}
+
 	return &Provider{
-		tp:     tp,
-		mp:     mp,
-		lp:     lp,
-		tracer: tp.Tracer(TracerName),
-		logger: lp.Logger(LoggerName),
+		tp:              tp,
+		mp:              mp,
+		lp:              lp,
+		tracer:          tp.Tracer(TracerName),
+		logger:          lp.Logger(LoggerName),
+		metricBaseAttrs: metricBaseAttrs,
 	}, nil
 }
 
