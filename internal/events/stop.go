@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -62,7 +63,27 @@ func HandleStop(env payload.Envelope) error {
 	// VCS enrichment (read fresh — branch/repo can change mid-session)
 	attrs = append(attrs, vcsAttributes(env.Cwd, env.SessionID, store)...)
 
-	builder.CreateSpan(promptCtx, "prompt", startTime, endTime, attrs)
+	// Load recorded events for this prompt span (tool calls, agent starts)
+	var spanEvents []pluginotel.SpanEvent
+	if recorded, err := store.GetEvents(env.SessionID, prompt.SpanID); err == nil {
+		for _, re := range recorded {
+			se := pluginotel.SpanEvent{
+				Name: re.Name,
+				Time: time.Unix(0, re.Timestamp),
+			}
+			if re.Attrs != "" {
+				var attrMap map[string]string
+				if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
+					for k, v := range attrMap {
+						se.Attrs = append(se.Attrs, attribute.String(k, v))
+					}
+				}
+			}
+			spanEvents = append(spanEvents, se)
+		}
+	}
+
+	builder.CreateSpan(promptCtx, "prompt", startTime, endTime, attrs, spanEvents...)
 
 	durationMs := endTime.Sub(startTime).Milliseconds()
 

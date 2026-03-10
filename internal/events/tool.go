@@ -247,14 +247,14 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 
 	durationMs := endTime.Sub(startTime).Milliseconds()
 
-	// Record event on session span timeline
+	// Record event on parent span timeline (prompt or subagent)
 	toolEventName := "tool:" + event.ToolName
 	if isError {
 		toolEventName = "tool:" + event.ToolName + " (error)"
 	}
 	_ = store.RecordEvent(state.SpanEvent{
 		SessionID: env.SessionID,
-		SpanID:    sess.SpanID,
+		SpanID:    tool.ParentSpanID,
 		Name:      toolEventName,
 		Timestamp: endTime.UnixNano(),
 		Attrs:     fmt.Sprintf(`{"tool.name":"%s","duration_ms":"%d","success":"%v"}`, event.ToolName, durationMs, !isError),

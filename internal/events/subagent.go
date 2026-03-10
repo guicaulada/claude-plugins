@@ -96,6 +96,15 @@ func HandleSubagentStart(env payload.Envelope) error {
 		startLogAttrs["claude_code.agent.id"] = event.AgentID
 		provider.EmitEvent("claude_code.agent.start", sess.TraceID, sa.SpanID, startLogAttrs)
 
+		// Record event on parent span timeline (prompt)
+		_ = store.RecordEvent(state.SpanEvent{
+			SessionID: env.SessionID,
+			SpanID:    sa.ParentSpanID,
+			Name:      "agent:" + event.AgentType,
+			Timestamp: sa.StartTime,
+			Attrs:     fmt.Sprintf(`{"agent.type":"%s","agent.name":"%s"}`, event.AgentType, agentName),
+		})
+
 		saMetricAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.agent.type", event.AgentType),
 			attribute.String("claude_code.agent.name", agentName),
@@ -166,9 +175,38 @@ func HandleSubagentStop(env payload.Envelope) error {
 	// VCS enrichment
 	attrs = append(attrs, vcsAttributes(env.Cwd, env.SessionID, store)...)
 
-	builder.CreateSpan(saCtx, spanName, startTime, endTime, attrs)
+	// Load recorded events for this subagent span (tool calls within it)
+	var spanEvents []pluginotel.SpanEvent
+	if recorded, err := store.GetEvents(env.SessionID, sa.SpanID); err == nil {
+		for _, re := range recorded {
+			se := pluginotel.SpanEvent{
+				Name: re.Name,
+				Time: time.Unix(0, re.Timestamp),
+			}
+			if re.Attrs != "" {
+				var attrMap map[string]string
+				if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
+					for k, v := range attrMap {
+						se.Attrs = append(se.Attrs, attribute.String(k, v))
+					}
+				}
+			}
+			spanEvents = append(spanEvents, se)
+		}
+	}
+
+	builder.CreateSpan(saCtx, spanName, startTime, endTime, attrs, spanEvents...)
 
 	durationMs := endTime.Sub(startTime).Milliseconds()
+
+	// Record event on session span timeline
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    sess.SpanID,
+		Name:      "agent:" + sa.AgentType + " stop",
+		Timestamp: endTime.UnixNano(),
+		Attrs:     fmt.Sprintf(`{"agent.type":"%s","agent.name":"%s","duration_ms":"%d"}`, sa.AgentType, sa.AgentName, durationMs),
+	})
 
 	// Emit event
 	stopLogAttrs := commonLogAttrs(env)
