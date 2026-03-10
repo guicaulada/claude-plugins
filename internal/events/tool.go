@@ -130,7 +130,9 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string) error {
 	}
 	defer provider.Shutdown(ctx)
 
-	parentCtx, err := pluginotel.ParentContext(sess.TraceID, tool.ParentSpanID)
+	// Use ChildContext to preserve the stored span ID so subagent spans
+	// that reference this tool as parent link correctly
+	toolCtx, err := pluginotel.ChildContext(sess.TraceID, tool.ParentSpanID, tool.SpanID)
 	if err != nil {
 		return err
 	}
@@ -152,10 +154,10 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string) error {
 	}
 
 	if isError {
-		builder.CreateErrorSpan(parentCtx, spanName, startTime, endTime, attrs, errMsg)
+		builder.CreateErrorSpan(toolCtx, spanName, startTime, endTime, attrs, errMsg)
 		_ = store.IncrementCounter(env.SessionID, "error_count")
 	} else {
-		builder.CreateSpan(parentCtx, spanName, startTime, endTime, attrs)
+		builder.CreateSpan(toolCtx, spanName, startTime, endTime, attrs)
 	}
 
 	_ = store.IncrementCounter(env.SessionID, "tool_count")

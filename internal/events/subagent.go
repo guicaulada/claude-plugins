@@ -39,17 +39,30 @@ func HandleSubagentStart(env payload.Envelope) error {
 	}
 	defer store.Close()
 
-	// Parent is the current prompt span
+	// Parent: prefer the most recent active Agent tool (direct parent),
+	// fall back to current prompt, then session
 	parentSpanID := ""
-	prompt, err := store.GetCurrentPrompt(env.SessionID)
-	if err == nil && prompt.SessionID != "" {
-		parentSpanID = prompt.SpanID
+	agentTool, err := store.GetLatestToolByName(env.SessionID, "Agent")
+	if err == nil && agentTool.ToolUseID != "" {
+		parentSpanID = agentTool.SpanID
+	}
+	if parentSpanID == "" {
+		prompt, err := store.GetCurrentPrompt(env.SessionID)
+		if err == nil && prompt.SessionID != "" {
+			parentSpanID = prompt.SpanID
+		}
 	}
 	if parentSpanID == "" {
 		sess, err := store.GetSession(env.SessionID)
 		if err == nil && sess.SessionID != "" {
 			parentSpanID = sess.SpanID
 		}
+	}
+
+	// Use agent_type as fallback for empty agent_name
+	agentName := event.AgentName
+	if agentName == "" {
+		agentName = event.AgentType
 	}
 
 	sa := state.Subagent{
@@ -59,7 +72,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 		ParentSpanID: parentSpanID,
 		StartTime:    time.Now().UnixNano(),
 		AgentType:    event.AgentType,
-		AgentName:    event.AgentName,
+		AgentName:    agentName,
 	}
 
 	if err := store.CreateSubagent(sa); err != nil {
