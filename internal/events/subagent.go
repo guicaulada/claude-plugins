@@ -140,6 +140,9 @@ func HandleSubagentStop(env payload.Envelope) error {
 		attribute.String("claude_code.permission_mode", env.PermissionMode),
 	}
 
+	// VCS enrichment
+	attrs = append(attrs, vcsAttributes(env.Cwd, env.SessionID, store)...)
+
 	builder.CreateSpan(saCtx, spanName, startTime, endTime, attrs)
 
 	debug.Log("subagent stop: session=%s agent=%s duration=%dms",

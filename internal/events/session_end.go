@@ -49,6 +49,8 @@ func HandleSessionEnd(env payload.Envelope) error {
 	linesAdded, _ := store.GetCounter(env.SessionID, "lines_added")
 	linesRemoved, _ := store.GetCounter(env.SessionID, "lines_removed")
 	commitCount, _ := store.GetCounter(env.SessionID, "commit_count")
+	branchCount, _ := store.GetCounter(env.SessionID, "branch_count")
+	repoCount, _ := store.GetCounter(env.SessionID, "repo_count")
 
 	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d lines=+%d/-%d commits=%d",
 		promptCount, toolCount, errorCount, subagentCount, linesAdded, linesRemoved, commitCount)
@@ -91,6 +93,8 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attribute.Int64("claude_code.session.lines_added", linesAdded),
 		attribute.Int64("claude_code.session.lines_removed", linesRemoved),
 		attribute.Int64("claude_code.session.commit_count", commitCount),
+		attribute.Int64("claude_code.session.branch_count", branchCount),
+		attribute.Int64("claude_code.session.repo_count", repoCount),
 		attribute.Int64("claude_code.session.duration_ms", durationMs),
 	}
 

@@ -58,6 +58,9 @@ func HandleStop(env payload.Envelope) error {
 		attribute.String("claude_code.permission_mode", env.PermissionMode),
 	}
 
+	// VCS enrichment (read fresh — branch/repo can change mid-session)
+	attrs = append(attrs, vcsAttributes(env.Cwd, env.SessionID, store)...)
+
 	builder.CreateSpan(promptCtx, "prompt", startTime, endTime, attrs)
 
 	debug.Log("stop: exported prompt span session=%s index=%d duration=%dms",

@@ -178,6 +178,9 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		attribute.String("claude_code.permission_mode", env.PermissionMode),
 	}
 
+	// VCS enrichment (read fresh — branch/repo can change mid-session)
+	attrs = append(attrs, vcsAttributes(env.Cwd, env.SessionID, store)...)
+
 	// File enrichment
 	if tool.FilePath != "" {
 		fi := fileinfo.FromPath(tool.FilePath)
