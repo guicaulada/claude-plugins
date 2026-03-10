@@ -110,6 +110,15 @@ CREATE TABLE IF NOT EXISTS counters (
 CREATE TABLE IF NOT EXISTS cache (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    span_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    attrs TEXT
 );`
 
 	_, err := s.db.Exec(schema)

@@ -83,26 +83,44 @@ func ChildContext(traceIDHex, parentSpanIDHex, spanIDHex string) (context.Contex
 type fixedTraceIDKey struct{}
 type fixedSpanIDKey struct{}
 
+// SpanEvent represents a timestamped event to add to a span.
+type SpanEvent struct {
+	Name  string
+	Time  time.Time
+	Attrs []attribute.KeyValue
+}
+
 // CreateSpan creates and immediately ends a span with explicit timestamps.
+// Optional events are added to the span before ending.
 // Returns the span's hex span ID.
-func (b *SpanBuilder) CreateSpan(ctx context.Context, name string, startTime, endTime time.Time, attrs []attribute.KeyValue) string {
+func (b *SpanBuilder) CreateSpan(ctx context.Context, name string, startTime, endTime time.Time, attrs []attribute.KeyValue, events ...SpanEvent) string {
 	_, span := b.tracer.Start(ctx, name,
 		trace.WithTimestamp(startTime),
 		trace.WithSpanKind(trace.SpanKindInternal),
 		trace.WithAttributes(attrs...),
 	)
+
+	for _, e := range events {
+		span.AddEvent(e.Name, trace.WithTimestamp(e.Time), trace.WithAttributes(e.Attrs...))
+	}
+
 	span.End(trace.WithTimestamp(endTime))
 
 	return span.SpanContext().SpanID().String()
 }
 
 // CreateErrorSpan creates and immediately ends an error span with explicit timestamps.
-func (b *SpanBuilder) CreateErrorSpan(ctx context.Context, name string, startTime, endTime time.Time, attrs []attribute.KeyValue, errMsg string) string {
+func (b *SpanBuilder) CreateErrorSpan(ctx context.Context, name string, startTime, endTime time.Time, attrs []attribute.KeyValue, errMsg string, events ...SpanEvent) string {
 	_, span := b.tracer.Start(ctx, name,
 		trace.WithTimestamp(startTime),
 		trace.WithSpanKind(trace.SpanKindInternal),
 		trace.WithAttributes(attrs...),
 	)
+
+	for _, e := range events {
+		span.AddEvent(e.Name, trace.WithTimestamp(e.Time), trace.WithAttributes(e.Attrs...))
+	}
+
 	span.SetStatus(codes.Error, errMsg)
 	span.End(trace.WithTimestamp(endTime))
 

@@ -51,6 +51,18 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 		return err
 	}
 
+	// Record event on session span timeline
+	sess, _ := store.GetSession(env.SessionID)
+	if sess.SessionID != "" {
+		_ = store.RecordEvent(state.SpanEvent{
+			SessionID: env.SessionID,
+			SpanID:    sess.SpanID,
+			Name:      "prompt.submit",
+			Timestamp: prompt.StartTime,
+			Attrs:     fmt.Sprintf(`{"prompt.index":"%d"}`, prompt.PromptIndex),
+		})
+	}
+
 	// Emit event and metric
 	ctx := context.Background()
 	cfg := config.Load()

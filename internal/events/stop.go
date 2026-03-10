@@ -66,6 +66,15 @@ func HandleStop(env payload.Envelope) error {
 
 	durationMs := endTime.Sub(startTime).Milliseconds()
 
+	// Record event on session span timeline
+	_ = store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    sess.SpanID,
+		Name:      "prompt.stop",
+		Timestamp: endTime.UnixNano(),
+		Attrs:     fmt.Sprintf(`{"prompt.index":"%d","duration_ms":"%d"}`, prompt.PromptIndex, durationMs),
+	})
+
 	// Emit event
 	logAttrs := commonLogAttrs(env)
 	logAttrs["claude_code.prompt.index"] = fmt.Sprintf("%d", prompt.PromptIndex)

@@ -112,8 +112,30 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attrs = append(attrs, attribute.String("vcs.repository.url.full", sess.GitRemoteURL))
 	}
 
+	// Load recorded events for the session span
+	var spanEvents []pluginotel.SpanEvent
+	if recorded, err := store.GetEvents(env.SessionID, sess.SpanID); err == nil {
+		for _, re := range recorded {
+			se := pluginotel.SpanEvent{
+				Name: re.Name,
+				Time: time.Unix(0, re.Timestamp),
+			}
+			// Parse attrs JSON
+			if re.Attrs != "" {
+				var attrMap map[string]string
+				if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
+					for k, v := range attrMap {
+						se.Attrs = append(se.Attrs, attribute.String(k, v))
+					}
+				}
+			}
+			spanEvents = append(spanEvents, se)
+		}
+		debug.Log("session end: loaded %d span events", len(spanEvents))
+	}
+
 	debug.Log("session end: creating session span")
-	builder.CreateSpan(rootCtx, "session", startTime, endTime, attrs)
+	builder.CreateSpan(rootCtx, "session", startTime, endTime, attrs, spanEvents...)
 
 	// Emit event
 	logAttrs := commonLogAttrsFromSession(env, sess)
