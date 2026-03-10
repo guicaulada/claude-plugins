@@ -11,7 +11,7 @@ import (
 )
 
 // newProviderFromState creates an OTel provider using cached headers from state.
-// Falls back to loading headers from otelHeadersHelper if no cache exists.
+// If no cache exists, loads headers from otelHeadersHelper and caches them.
 func newProviderFromState(ctx context.Context, cfg config.Config, store *state.Store) (*pluginotel.Provider, error) {
 	var opts []pluginotel.ProviderOption
 
@@ -20,6 +20,17 @@ func newProviderFromState(ctx context.Context, cfg config.Config, store *state.S
 		if err := json.Unmarshal([]byte(cached), &headers); err == nil && len(headers) > 0 {
 			opts = append(opts, pluginotel.WithHeaders(headers))
 			debug.Log("using %d cached OTel headers", len(headers))
+		}
+	} else {
+		// No cache — load from otelHeadersHelper and cache for future invocations
+		headers := config.LoadOTelHeaders()
+		if len(headers) > 0 {
+			opts = append(opts, pluginotel.WithHeaders(headers))
+			headersJSON, err := json.Marshal(headers)
+			if err == nil {
+				_ = store.SetCache("otel_headers", string(headersJSON))
+				debug.Log("loaded and cached %d OTel headers from helper", len(headers))
+			}
 		}
 	}
 

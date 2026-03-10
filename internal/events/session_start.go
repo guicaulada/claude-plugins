@@ -58,18 +58,7 @@ func HandleSessionStart(env payload.Envelope) error {
 		_ = store.SetCache("git_head_sha", gitCtx.HeadSHA)
 	}
 
-	// Cache OTel headers from otelHeadersHelper so SessionEnd
-	// doesn't need to re-run the script (which may fail during shutdown)
-	headers := config.LoadOTelHeaders()
-	if len(headers) > 0 {
-		headersJSON, err := json.Marshal(headers)
-		if err == nil {
-			_ = store.SetCache("otel_headers", string(headersJSON))
-			debug.Log("cached %d OTel headers in state", len(headers))
-		}
-	}
-
-	// Emit event and metric
+	// Emit event and metric (newProviderFromState handles header caching)
 	ctx := context.Background()
 	cfg := config.Load()
 	provider, err := newProviderFromState(ctx, cfg, store)
