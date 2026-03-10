@@ -66,7 +66,7 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 
 	// Apply plugin-specific protocol override via env var
 	if protocol := cfg.PluginProtocol(); protocol != "" {
-		os.Setenv("OTEL_EXPORTER_OTLP_PROTOCOL", protocol)
+		_ = os.Setenv("OTEL_EXPORTER_OTLP_PROTOCOL", protocol)
 		debug.Log("set OTEL_EXPORTER_OTLP_PROTOCOL=%s from plugin override", protocol)
 	}
 
@@ -77,7 +77,7 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		for k, v := range headers {
 			pairs = append(pairs, k+"="+v)
 		}
-		os.Setenv("OTEL_EXPORTER_OTLP_HEADERS", strings.Join(pairs, ","))
+		_ = os.Setenv("OTEL_EXPORTER_OTLP_HEADERS", strings.Join(pairs, ","))
 		debug.Log("set OTEL_EXPORTER_OTLP_HEADERS (%d pairs)", len(headers))
 	}
 

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"os"
 	"testing"
 )
 
@@ -33,16 +32,11 @@ func TestResolveEnabled(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	os.Setenv("OTEL_PLUGIN_ENABLED", "1")
-	os.Setenv("OTEL_PLUGIN_DEBUG", "1")
-	os.Setenv("OTEL_LOG_USER_PROMPTS", "1")
-	os.Setenv("OTEL_LOG_TOOL_DETAILS", "1")
-	os.Setenv("OTEL_METRICS_INCLUDE_VERSION", "true")
-	defer os.Unsetenv("OTEL_PLUGIN_ENABLED")
-	defer os.Unsetenv("OTEL_PLUGIN_DEBUG")
-	defer os.Unsetenv("OTEL_LOG_USER_PROMPTS")
-	defer os.Unsetenv("OTEL_LOG_TOOL_DETAILS")
-	defer os.Unsetenv("OTEL_METRICS_INCLUDE_VERSION")
+	t.Setenv("OTEL_PLUGIN_ENABLED", "1")
+	t.Setenv("OTEL_PLUGIN_DEBUG", "1")
+	t.Setenv("OTEL_LOG_USER_PROMPTS", "1")
+	t.Setenv("OTEL_LOG_TOOL_DETAILS", "1")
+	t.Setenv("OTEL_METRICS_INCLUDE_VERSION", "true")
 
 	cfg := Load()
 	if !cfg.Enabled {
@@ -63,12 +57,12 @@ func TestLoad(t *testing.T) {
 }
 
 func TestLoadDefaults(t *testing.T) {
-	os.Unsetenv("OTEL_PLUGIN_ENABLED")
-	os.Unsetenv("CLAUDE_CODE_ENABLE_TELEMETRY")
-	os.Unsetenv("OTEL_PLUGIN_DEBUG")
-	os.Unsetenv("OTEL_LOG_USER_PROMPTS")
-	os.Unsetenv("OTEL_LOG_TOOL_DETAILS")
-	os.Unsetenv("OTEL_METRICS_INCLUDE_VERSION")
+	t.Setenv("OTEL_PLUGIN_ENABLED", "")
+	t.Setenv("CLAUDE_CODE_ENABLE_TELEMETRY", "")
+	t.Setenv("OTEL_PLUGIN_DEBUG", "")
+	t.Setenv("OTEL_LOG_USER_PROMPTS", "")
+	t.Setenv("OTEL_LOG_TOOL_DETAILS", "")
+	t.Setenv("OTEL_METRICS_INCLUDE_VERSION", "")
 
 	cfg := Load()
 	if cfg.Enabled {
@@ -88,8 +82,8 @@ func TestLoadDefaults(t *testing.T) {
 func TestPluginEndpoint(t *testing.T) {
 	cfg := Config{}
 
-	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
-	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
+	t.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+
 
 	endpoint := cfg.PluginEndpoint()
 	if endpoint != "localhost:4318" {
@@ -98,7 +92,7 @@ func TestPluginEndpoint(t *testing.T) {
 }
 
 func TestPluginEndpointEmpty(t *testing.T) {
-	os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
+	t.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "")
 
 	cfg := Config{}
 	if endpoint := cfg.PluginEndpoint(); endpoint != "" {
@@ -107,8 +101,8 @@ func TestPluginEndpointEmpty(t *testing.T) {
 }
 
 func TestPluginInsecure(t *testing.T) {
-	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
-	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
+	t.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+
 
 	cfg := Config{}
 	if !cfg.PluginInsecure() {
@@ -117,8 +111,8 @@ func TestPluginInsecure(t *testing.T) {
 }
 
 func TestPluginInsecureHTTPS(t *testing.T) {
-	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "https://example.com")
-	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
+	t.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "https://example.com")
+
 
 	cfg := Config{}
 	if cfg.PluginInsecure() {
@@ -127,8 +121,8 @@ func TestPluginInsecureHTTPS(t *testing.T) {
 }
 
 func TestPluginHeaders(t *testing.T) {
-	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_HEADERS", "Authorization=Bearer token,X-Key=value")
-	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_HEADERS")
+	t.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_HEADERS", "Authorization=Bearer token,X-Key=value")
+
 
 	cfg := Config{}
 	headers := cfg.PluginHeaders()
@@ -141,8 +135,8 @@ func TestPluginHeaders(t *testing.T) {
 }
 
 func TestPluginProtocol(t *testing.T) {
-	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_PROTOCOL", "http/json")
-	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_PROTOCOL")
+	t.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_PROTOCOL", "http/json")
+
 
 	cfg := Config{}
 	if p := cfg.PluginProtocol(); p != "http/json" {
