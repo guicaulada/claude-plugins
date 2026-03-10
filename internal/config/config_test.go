@@ -35,8 +35,14 @@ func TestResolveEnabled(t *testing.T) {
 func TestLoad(t *testing.T) {
 	os.Setenv("OTEL_PLUGIN_ENABLED", "1")
 	os.Setenv("OTEL_PLUGIN_DEBUG", "1")
+	os.Setenv("OTEL_LOG_USER_PROMPTS", "1")
+	os.Setenv("OTEL_LOG_TOOL_DETAILS", "1")
+	os.Setenv("OTEL_METRICS_INCLUDE_VERSION", "true")
 	defer os.Unsetenv("OTEL_PLUGIN_ENABLED")
 	defer os.Unsetenv("OTEL_PLUGIN_DEBUG")
+	defer os.Unsetenv("OTEL_LOG_USER_PROMPTS")
+	defer os.Unsetenv("OTEL_LOG_TOOL_DETAILS")
+	defer os.Unsetenv("OTEL_METRICS_INCLUDE_VERSION")
 
 	cfg := Load()
 	if !cfg.Enabled {
@@ -44,5 +50,141 @@ func TestLoad(t *testing.T) {
 	}
 	if !cfg.Debug {
 		t.Error("expected Debug to be true")
+	}
+	if !cfg.LogUserPrompts {
+		t.Error("expected LogUserPrompts to be true")
+	}
+	if !cfg.LogToolDetails {
+		t.Error("expected LogToolDetails to be true")
+	}
+	if !cfg.IncludeVersion {
+		t.Error("expected IncludeVersion to be true")
+	}
+}
+
+func TestLoadDefaults(t *testing.T) {
+	os.Unsetenv("OTEL_PLUGIN_ENABLED")
+	os.Unsetenv("CLAUDE_CODE_ENABLE_TELEMETRY")
+	os.Unsetenv("OTEL_PLUGIN_DEBUG")
+	os.Unsetenv("OTEL_LOG_USER_PROMPTS")
+	os.Unsetenv("OTEL_LOG_TOOL_DETAILS")
+	os.Unsetenv("OTEL_METRICS_INCLUDE_VERSION")
+
+	cfg := Load()
+	if cfg.Enabled {
+		t.Error("expected Enabled to be false by default")
+	}
+	if cfg.LogUserPrompts {
+		t.Error("expected LogUserPrompts to be false by default")
+	}
+	if cfg.LogToolDetails {
+		t.Error("expected LogToolDetails to be false by default")
+	}
+	if cfg.IncludeVersion {
+		t.Error("expected IncludeVersion to be false by default")
+	}
+}
+
+func TestPluginEndpoint(t *testing.T) {
+	cfg := Config{}
+
+	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
+
+	endpoint := cfg.PluginEndpoint()
+	if endpoint != "localhost:4318" {
+		t.Errorf("PluginEndpoint = %q, want %q", endpoint, "localhost:4318")
+	}
+}
+
+func TestPluginEndpointEmpty(t *testing.T) {
+	os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
+
+	cfg := Config{}
+	if endpoint := cfg.PluginEndpoint(); endpoint != "" {
+		t.Errorf("PluginEndpoint should be empty, got %q", endpoint)
+	}
+}
+
+func TestPluginInsecure(t *testing.T) {
+	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
+
+	cfg := Config{}
+	if !cfg.PluginInsecure() {
+		t.Error("expected insecure for http:// endpoint")
+	}
+}
+
+func TestPluginInsecureHTTPS(t *testing.T) {
+	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT", "https://example.com")
+	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
+
+	cfg := Config{}
+	if cfg.PluginInsecure() {
+		t.Error("expected secure for https:// endpoint")
+	}
+}
+
+func TestPluginHeaders(t *testing.T) {
+	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_HEADERS", "Authorization=Bearer token,X-Key=value")
+	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_HEADERS")
+
+	cfg := Config{}
+	headers := cfg.PluginHeaders()
+	if headers["Authorization"] != "Bearer token" {
+		t.Errorf("Authorization = %q", headers["Authorization"])
+	}
+	if headers["X-Key"] != "value" {
+		t.Errorf("X-Key = %q", headers["X-Key"])
+	}
+}
+
+func TestPluginProtocol(t *testing.T) {
+	os.Setenv("OTEL_PLUGIN_EXPORTER_OTLP_PROTOCOL", "http/json")
+	defer os.Unsetenv("OTEL_PLUGIN_EXPORTER_OTLP_PROTOCOL")
+
+	cfg := Config{}
+	if p := cfg.PluginProtocol(); p != "http/json" {
+		t.Errorf("PluginProtocol = %q, want %q", p, "http/json")
+	}
+}
+
+func TestParseHeaders(t *testing.T) {
+	tests := []struct {
+		input string
+		want  map[string]string
+	}{
+		{"key=value", map[string]string{"key": "value"}},
+		{"a=1,b=2", map[string]string{"a": "1", "b": "2"}},
+		{" key = value ", map[string]string{"key": "value"}},
+		{"", map[string]string{}},
+	}
+
+	for _, tt := range tests {
+		got := parseHeaders(tt.input)
+		for k, v := range tt.want {
+			if got[k] != v {
+				t.Errorf("parseHeaders(%q)[%q] = %q, want %q", tt.input, k, got[k], v)
+			}
+		}
+	}
+}
+
+func TestStripScheme(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"http://localhost:4318", "localhost:4318"},
+		{"https://example.com/otlp", "example.com/otlp"},
+		{"localhost:4318", "localhost:4318"},
+	}
+
+	for _, tt := range tests {
+		got := stripScheme(tt.input)
+		if got != tt.want {
+			t.Errorf("stripScheme(%q) = %q, want %q", tt.input, got, tt.want)
+		}
 	}
 }
