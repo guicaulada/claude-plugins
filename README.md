@@ -10,16 +10,16 @@ A collection of Claude Code plugins.
 
 ## Installation
 
-Install from this marketplace:
+Add this marketplace:
 
 ```bash
-claude plugin add --marketplace https://github.com/guicaulada/claude-plugins
+claude plugin marketplace add https://github.com/guicaulada/claude-plugins
 ```
 
-Or install a specific plugin directly:
+Then install a plugin:
 
 ```bash
-claude plugin add https://github.com/guicaulada/claude-plugins --plugin otel
+claude plugin install otel@guicaulada-plugins
 ```
 
 ## License
