@@ -113,20 +113,21 @@ func HandlePreToolUse(env payload.Envelope) error {
 }
 
 func HandlePostToolUse(env payload.Envelope) error {
-	return handleToolEnd(env, false, "")
+	return handleToolEnd(env, false, "", false)
 }
 
 func HandlePostToolUseFailure(env payload.Envelope) error {
 	var event struct {
-		Error string `json:"error"`
+		Error       string `json:"error"`
+		IsInterrupt bool   `json:"is_interrupt"`
 	}
 	if err := json.Unmarshal(env.RawEvent, &event); err != nil {
 		debug.Log("failed to parse PostToolUseFailure event: %v", err)
 	}
-	return handleToolEnd(env, true, event.Error)
+	return handleToolEnd(env, true, event.Error, event.IsInterrupt)
 }
 
-func handleToolEnd(env payload.Envelope, isError bool, errMsg string) error {
+func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrupt bool) error {
 	var event toolEvent
 	if err := json.Unmarshal(env.RawEvent, &event); err != nil {
 		debug.Log("failed to parse tool end event: %v", err)
@@ -206,6 +207,10 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string) error {
 	}
 
 	if isError {
+		if errMsg != "" {
+			attrs = append(attrs, attribute.String("claude_code.error.message", errMsg))
+		}
+		attrs = append(attrs, attribute.Bool("claude_code.error.is_interrupt", isInterrupt))
 		builder.CreateErrorSpan(toolCtx, spanName, startTime, endTime, attrs, errMsg)
 		_ = store.IncrementCounter(env.SessionID, "error_count")
 	} else {

@@ -78,13 +78,42 @@ func CountLines(s string) int {
 	return strings.Count(s, "\n") + 1
 }
 
-// DiffLines computes lines added and removed between old and new content.
+// DiffLines computes lines added and removed between old and new content
+// by comparing line-by-line. Lines present in new but not old are added;
+// lines present in old but not new are removed.
 func DiffLines(oldContent, newContent string) (added, removed int) {
-	oldLines := CountLines(oldContent)
-	newLines := CountLines(newContent)
-
-	if newLines > oldLines {
-		return newLines - oldLines, 0
+	if oldContent == "" && newContent == "" {
+		return 0, 0
 	}
-	return 0, oldLines - newLines
+	if oldContent == "" {
+		return CountLines(newContent), 0
+	}
+	if newContent == "" {
+		return 0, CountLines(oldContent)
+	}
+
+	oldLines := strings.Split(oldContent, "\n")
+	newLines := strings.Split(newContent, "\n")
+
+	// Build a frequency map of old lines
+	oldFreq := make(map[string]int)
+	for _, line := range oldLines {
+		oldFreq[line]++
+	}
+
+	// Count lines in new that aren't in old
+	for _, line := range newLines {
+		if oldFreq[line] > 0 {
+			oldFreq[line]--
+		} else {
+			added++
+		}
+	}
+
+	// Remaining old lines that weren't matched
+	for _, count := range oldFreq {
+		removed += count
+	}
+
+	return added, removed
 }

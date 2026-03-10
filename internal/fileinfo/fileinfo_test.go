@@ -97,6 +97,18 @@ func TestDiffLines(t *testing.T) {
 		{"same", "a\nb", "a\nb", 0, 0},
 		{"empty to content", "", "a\nb\nc", 3, 0},
 		{"content to empty", "a\nb", "", 0, 2},
+		{
+			"replace lines",
+			"line1\nold line\nline3",
+			"line1\nnew line\nline3",
+			1, 1,
+		},
+		{
+			"mixed add and remove",
+			"a\nb\nc\nd",
+			"a\nx\ny\nc",
+			2, 2,
+		},
 	}
 
 	for _, tt := range tests {

@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -13,7 +14,16 @@ import (
 	"github.com/guicaulada/claude-code-otel-plugin/internal/state"
 )
 
+type sessionEndEvent struct {
+	Reason string `json:"reason"`
+}
+
 func HandleSessionEnd(env payload.Envelope) error {
+	var event sessionEndEvent
+	if err := json.Unmarshal(env.RawEvent, &event); err != nil {
+		debug.Log("failed to parse SessionEnd event: %v", err)
+	}
+
 	debug.Log("session end: opening state for %s", env.SessionID)
 
 	store, err := state.Open(env.SessionID)
@@ -73,7 +83,8 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attribute.String("claude_code.session.id", env.SessionID),
 		attribute.String("claude_code.session.start_type", sess.StartType),
 		attribute.String("claude_code.session.cwd", sess.Cwd),
-		attribute.String("claude_code.permission_mode", sess.PermissionMode),
+		attribute.String("claude_code.session.end_reason", event.Reason),
+		attribute.String("claude_code.permission_mode", env.PermissionMode),
 		attribute.Int64("claude_code.session.prompt_count", promptCount),
 		attribute.Int64("claude_code.session.tool_count", toolCount),
 		attribute.Int64("claude_code.session.error_count", errorCount),
