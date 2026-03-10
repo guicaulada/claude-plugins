@@ -124,7 +124,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string) error {
 	// Export the tool span
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := pluginotel.NewProvider(ctx, cfg)
+	provider, err := newProviderFromState(ctx, cfg, store)
 	if err != nil {
 		return err
 	}

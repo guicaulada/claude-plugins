@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -45,18 +44,8 @@ func HandleSessionEnd(env payload.Envelope) error {
 	ctx := context.Background()
 	cfg := config.Load()
 
-	// Load cached headers from state (avoids re-running otelHeadersHelper during shutdown)
-	var providerOpts []pluginotel.ProviderOption
-	if cached, err := store.GetCache("otel_headers"); err == nil && cached != "" {
-		var headers map[string]string
-		if err := json.Unmarshal([]byte(cached), &headers); err == nil && len(headers) > 0 {
-			providerOpts = append(providerOpts, pluginotel.WithHeaders(headers))
-			debug.Log("session end: using %d cached OTel headers", len(headers))
-		}
-	}
-
 	debug.Log("session end: creating OTel provider")
-	provider, err := pluginotel.NewProvider(ctx, cfg, providerOpts...)
+	provider, err := newProviderFromState(ctx, cfg, store)
 	if err != nil {
 		debug.Log("session end: failed to create provider: %v", err)
 		store.Close()

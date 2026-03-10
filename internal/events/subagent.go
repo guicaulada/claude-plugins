@@ -101,7 +101,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 	// Export the subagent span
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := pluginotel.NewProvider(ctx, cfg)
+	provider, err := newProviderFromState(ctx, cfg, store)
 	if err != nil {
 		return err
 	}
