@@ -43,7 +43,7 @@ func Open(sessionID string) (*Store, error) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	if schemaErr != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("create schema: %w", schemaErr)
 	}
 

@@ -29,7 +29,7 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	count, err := store.GetPromptCount(env.SessionID)
 	if err != nil {

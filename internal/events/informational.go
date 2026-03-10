@@ -38,7 +38,7 @@ func HandlePermissionRequest(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	cfg := config.Load()
@@ -84,7 +84,7 @@ func HandleNotification(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	_ = store.IncrementCounter(env.SessionID, "notification_count")
 
@@ -144,7 +144,7 @@ func HandleTaskCompleted(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	_ = store.IncrementCounter(env.SessionID, "task_count")
 
@@ -206,7 +206,7 @@ func HandleInstructionsLoaded(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	_ = store.IncrementCounter(env.SessionID, "instructions_loaded_count")
 
@@ -262,7 +262,7 @@ func HandleConfigChange(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	cfg := config.Load()
@@ -309,7 +309,7 @@ func HandleWorktreeCreate(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	cfg := config.Load()
@@ -353,7 +353,7 @@ func HandleWorktreeRemove(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	cfg := config.Load()
@@ -398,7 +398,7 @@ func HandleTeammateIdle(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	ctx := context.Background()
 	cfg := config.Load()
@@ -444,7 +444,7 @@ func HandlePreCompact(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	_ = store.IncrementCounter(env.SessionID, "compact_count")
 

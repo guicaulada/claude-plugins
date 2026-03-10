@@ -38,7 +38,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Parent: prefer the most recent active Agent tool (direct parent),
 	// fall back to current prompt, then session
@@ -133,7 +133,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	sa, err := store.GetSubagent(event.AgentID)
 	if err != nil || sa.AgentID == "" {

@@ -32,7 +32,7 @@ func TestSpanID(t *testing.T) {
 func TestTraceIDHexChars(t *testing.T) {
 	id := TraceID()
 	for _, c := range id {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
 			t.Errorf("TraceID contains non-hex char: %c", c)
 		}
 	}

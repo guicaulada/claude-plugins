@@ -49,7 +49,7 @@ func HandlePreToolUse(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Determine parent span: subagent if inside one, otherwise current prompt
 	parentSpanID := ""
@@ -175,7 +175,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	tool, err := store.GetTool(event.ToolUseID)
 	if err != nil || tool.ToolUseID == "" {

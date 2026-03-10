@@ -29,7 +29,7 @@ func (s *Store) GetEvents(sessionID, spanID string) ([]SpanEvent, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var events []SpanEvent
 	for rows.Next() {

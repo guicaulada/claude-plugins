@@ -10,7 +10,7 @@ func (s *Store) GetOrphanedPrompts(sessionID string) ([]Prompt, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var prompts []Prompt
 	for rows.Next() {
@@ -34,7 +34,7 @@ func (s *Store) GetOrphanedTools(sessionID string) ([]Tool, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tools []Tool
 	for rows.Next() {
@@ -61,7 +61,7 @@ func (s *Store) GetOrphanedSubagents(sessionID string) ([]Subagent, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var agents []Subagent
 	for rows.Next() {

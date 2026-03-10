@@ -20,7 +20,7 @@ func HandleStop(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	sess, err := store.GetSession(env.SessionID)
 	if err != nil || sess.SessionID == "" {

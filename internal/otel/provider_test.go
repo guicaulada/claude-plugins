@@ -189,7 +189,7 @@ func TestMockCollectorJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("POST: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	var result map[string]any

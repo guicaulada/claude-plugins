@@ -30,7 +30,7 @@ func HandleSessionStart(env payload.Envelope) error {
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	// Extract git context from the working directory
 	gitCtx := gitpkg.GetContext(env.Cwd)
