@@ -7,7 +7,3 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-
-issues:
-  exclude-dirs:
-    - vendor
