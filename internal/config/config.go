@@ -29,32 +29,24 @@ func Load() Config {
 	}
 }
 
-// OTelEndpoint returns the OTLP endpoint, preferring plugin-specific override.
-func (c Config) OTelEndpoint() string {
+// PluginEndpoint returns the plugin-specific OTLP endpoint override (host:port only).
+// Returns empty if not set — the SDK will use OTEL_EXPORTER_OTLP_ENDPOINT automatically.
+func (c Config) PluginEndpoint() string {
 	if v := os.Getenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT"); v != "" {
-		return stripScheme(v)
-	}
-	if v := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); v != "" {
 		return stripScheme(v)
 	}
 	return ""
 }
 
-// OTelInsecure returns true if the endpoint uses HTTP (not HTTPS).
-func (c Config) OTelInsecure() bool {
-	endpoint := os.Getenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT")
-	if endpoint == "" {
-		endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	}
-	return strings.HasPrefix(endpoint, "http://")
+// PluginInsecure returns true if the plugin-specific endpoint uses HTTP.
+func (c Config) PluginInsecure() bool {
+	return strings.HasPrefix(os.Getenv("OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT"), "http://")
 }
 
-// OTelHeaders returns the OTLP headers as a map, preferring plugin-specific override.
-func (c Config) OTelHeaders() map[string]string {
+// PluginHeaders returns plugin-specific OTLP header overrides.
+// Returns nil if not set — the SDK will use OTEL_EXPORTER_OTLP_HEADERS automatically.
+func (c Config) PluginHeaders() map[string]string {
 	raw := os.Getenv("OTEL_PLUGIN_EXPORTER_OTLP_HEADERS")
-	if raw == "" {
-		raw = os.Getenv("OTEL_EXPORTER_OTLP_HEADERS")
-	}
 	if raw == "" {
 		return nil
 	}
@@ -71,7 +63,7 @@ func resolveEnabled(pluginEnabled, telemetryEnabled string) bool {
 	return telemetryEnabled == "1"
 }
 
-// stripScheme removes http:// or https:// prefix for the OTLP exporter.
+// stripScheme removes http:// or https:// prefix for the OTLP exporter WithEndpoint.
 func stripScheme(endpoint string) string {
 	if u, err := url.Parse(endpoint); err == nil && u.Host != "" {
 		return u.Host + u.Path

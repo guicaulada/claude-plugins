@@ -27,21 +27,22 @@ type Provider struct {
 }
 
 // NewProvider creates and configures the OTel TracerProvider.
+// The exporter reads standard OTEL_EXPORTER_OTLP_* env vars automatically.
+// Only plugin-specific overrides (OTEL_PLUGIN_EXPORTER_*) are set programmatically.
 func NewProvider(ctx context.Context, cfg config.Config) (*Provider, error) {
 	opts := []otlptracehttp.Option{
 		otlptracehttp.WithTimeout(2 * time.Second),
 	}
 
-	if endpoint := cfg.OTelEndpoint(); endpoint != "" {
+	// Only override if plugin-specific env vars are set
+	if endpoint := cfg.PluginEndpoint(); endpoint != "" {
 		opts = append(opts, otlptracehttp.WithEndpoint(endpoint))
+		if cfg.PluginInsecure() {
+			opts = append(opts, otlptracehttp.WithInsecure())
+		}
 	}
 
-	if cfg.OTelInsecure() {
-		opts = append(opts, otlptracehttp.WithInsecure())
-	}
-
-	headers := cfg.OTelHeaders()
-	if len(headers) > 0 {
+	if headers := cfg.PluginHeaders(); len(headers) > 0 {
 		opts = append(opts, otlptracehttp.WithHeaders(headers))
 	}
 
