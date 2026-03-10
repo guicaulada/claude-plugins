@@ -61,12 +61,11 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		}
 	}
 
-	// Headers: pre-loaded > plugin override > otelHeadersHelper > SDK env var fallback
+	// Headers: pre-loaded (from state cache) > plugin override > SDK env var fallback
+	// otelHeadersHelper is only called once at SessionStart and cached in state.
 	if len(po.headers) > 0 {
 		exporterOpts = append(exporterOpts, otlptracehttp.WithHeaders(po.headers))
 	} else if headers := cfg.PluginHeaders(); len(headers) > 0 {
-		exporterOpts = append(exporterOpts, otlptracehttp.WithHeaders(headers))
-	} else if headers := config.LoadOTelHeaders(); len(headers) > 0 {
 		exporterOpts = append(exporterOpts, otlptracehttp.WithHeaders(headers))
 	}
 
