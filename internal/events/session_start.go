@@ -66,8 +66,8 @@ func HandleSessionStart(env payload.Envelope) error {
 		}
 	}
 
-	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s)",
+	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s, permission_mode: %q)",
 		env.SessionID, sess.TraceID, event.Source, env.Cwd,
-		gitCtx.Branch, gitCtx.RepoOwner, gitCtx.RepoName)
+		gitCtx.Branch, gitCtx.RepoOwner, gitCtx.RepoName, env.PermissionMode)
 	return nil
 }

@@ -84,7 +84,6 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attribute.String("claude_code.session.start_type", sess.StartType),
 		attribute.String("claude_code.session.cwd", sess.Cwd),
 		attribute.String("claude_code.session.end_reason", event.Reason),
-		attribute.String("claude_code.permission_mode", sess.PermissionMode),
 		attribute.Int64("claude_code.session.prompt_count", promptCount),
 		attribute.Int64("claude_code.session.tool_count", toolCount),
 		attribute.Int64("claude_code.session.error_count", errorCount),
@@ -111,9 +110,10 @@ func HandleSessionEnd(env payload.Envelope) error {
 	debug.Log("session end: creating session span")
 	builder.CreateSpan(rootCtx, "session", startTime, endTime, attrs)
 
-	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d)",
+	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d, permission_mode: env=%q state=%q)",
 		env.SessionID, sess.TraceID, durationMs,
-		promptCount, toolCount, errorCount, subagentCount)
+		promptCount, toolCount, errorCount, subagentCount,
+		env.PermissionMode, sess.PermissionMode)
 
 	debug.Log("session end: cleaning up state")
 	return store.Cleanup()
