@@ -107,6 +107,22 @@ func HandlePreToolUse(env payload.Envelope) error {
 		return err
 	}
 
+	// Emit event
+	ctx := context.Background()
+	cfg := config.Load()
+	provider, err := newProviderFromState(ctx, cfg, store)
+	if err == nil {
+		defer provider.Shutdown(ctx)
+
+		sess, _ := store.GetSession(env.SessionID)
+		provider.EmitEvent("claude_code.tool.start", sess.TraceID, tool.SpanID, map[string]string{
+			"claude_code.session.id":      env.SessionID,
+			"claude_code.tool.name":       event.ToolName,
+			"claude_code.tool.use_id":     event.ToolUseID,
+			"claude_code.permission_mode": env.PermissionMode,
+		})
+	}
+
 	debug.Log("pre tool use: session=%s tool=%s id=%s parent=%s",
 		env.SessionID, event.ToolName, event.ToolUseID, parentSpanID)
 	return nil
@@ -222,9 +238,59 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 
 	_ = store.IncrementCounter(env.SessionID, "tool_count")
 
+	durationMs := endTime.Sub(startTime).Milliseconds()
+
+	// Emit event
+	eventName := "claude_code.tool.end"
+	if isError {
+		eventName = "claude_code.tool.error"
+	}
+	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, map[string]string{
+		"claude_code.session.id":      env.SessionID,
+		"claude_code.tool.name":       event.ToolName,
+		"claude_code.tool.use_id":     event.ToolUseID,
+		"claude_code.permission_mode": env.PermissionMode,
+	})
+
+	// Emit metrics
+	metricAttrs := []attribute.KeyValue{
+		attribute.String("claude_code.tool.name", event.ToolName),
+		attribute.Bool("claude_code.tool.success", !isError),
+	}
+	if tool.FilePath != "" {
+		fi := fileinfo.FromPath(tool.FilePath)
+		metricAttrs = append(metricAttrs, attribute.String("claude_code.file.extension", fi.Extension))
+		if fi.Language != "" {
+			metricAttrs = append(metricAttrs, attribute.String("claude_code.file.language", fi.Language))
+		}
+	}
+	provider.CounterAdd(ctx, "claude_code.tool.count", 1, metricAttrs...)
+	provider.HistogramRecord(ctx, "claude_code.tool.duration", float64(durationMs),
+		attribute.String("claude_code.tool.name", event.ToolName),
+	)
+
+	if isError {
+		provider.CounterAdd(ctx, "claude_code.error.count", 1,
+			attribute.String("claude_code.tool.name", event.ToolName),
+		)
+	}
+
+	if linesAdded > 0 || linesRemoved > 0 {
+		if tool.FilePath != "" {
+			fi := fileinfo.FromPath(tool.FilePath)
+			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesAdded),
+				attribute.String("type", "added"),
+				attribute.String("claude_code.file.extension", fi.Extension),
+			)
+			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesRemoved),
+				attribute.String("type", "removed"),
+				attribute.String("claude_code.file.extension", fi.Extension),
+			)
+		}
+	}
+
 	debug.Log("tool end: session=%s tool=%s id=%s error=%v duration=%dms",
-		env.SessionID, event.ToolName, event.ToolUseID, isError,
-		endTime.Sub(startTime).Milliseconds())
+		env.SessionID, event.ToolName, event.ToolUseID, isError, durationMs)
 
 	return store.DeleteTool(event.ToolUseID)
 }

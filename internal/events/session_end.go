@@ -114,9 +114,23 @@ func HandleSessionEnd(env payload.Envelope) error {
 	debug.Log("session end: creating session span")
 	builder.CreateSpan(rootCtx, "session", startTime, endTime, attrs)
 
-	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d)",
+	// Emit event
+	provider.EmitEvent("claude_code.session.end", sess.TraceID, sess.SpanID, map[string]string{
+		"claude_code.session.id":         env.SessionID,
+		"claude_code.session.end_reason": event.Reason,
+		"claude_code.session.cwd":        sess.Cwd,
+	})
+
+	// Emit metric
+	provider.HistogramRecord(ctx, "claude_code.session.duration", float64(durationMs),
+		attribute.String("claude_code.session.start_type", sess.StartType),
+		attribute.String("claude_code.session.cwd", sess.Cwd),
+	)
+
+	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d)",
 		env.SessionID, sess.TraceID, durationMs,
-		promptCount, toolCount, errorCount, subagentCount)
+		promptCount, toolCount, errorCount, subagentCount,
+		linesAdded, linesRemoved, commitCount, branchCount, repoCount)
 
 	debug.Log("session end: cleaning up state")
 	return store.Cleanup()

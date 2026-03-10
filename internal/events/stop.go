@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -63,9 +64,22 @@ func HandleStop(env payload.Envelope) error {
 
 	builder.CreateSpan(promptCtx, "prompt", startTime, endTime, attrs)
 
+	durationMs := endTime.Sub(startTime).Milliseconds()
+
+	// Emit event
+	provider.EmitEvent("claude_code.prompt.stop", sess.TraceID, prompt.SpanID, map[string]string{
+		"claude_code.session.id":      env.SessionID,
+		"claude_code.prompt.index":    fmt.Sprintf("%d", prompt.PromptIndex),
+		"claude_code.permission_mode": env.PermissionMode,
+	})
+
+	// Emit metric
+	provider.HistogramRecord(ctx, "claude_code.prompt.duration", float64(durationMs),
+		attribute.String("claude_code.session.cwd", env.Cwd),
+	)
+
 	debug.Log("stop: exported prompt span session=%s index=%d duration=%dms",
-		env.SessionID, prompt.PromptIndex,
-		endTime.Sub(startTime).Milliseconds())
+		env.SessionID, prompt.PromptIndex, durationMs)
 
 	// Clean up the prompt from state
 	return store.DeletePrompt(prompt.ID)

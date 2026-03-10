@@ -1,8 +1,12 @@
 package events
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"time"
+
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/guicaulada/claude-code-otel-plugin/internal/config"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/debug"
@@ -65,8 +69,32 @@ func HandleSessionStart(env payload.Envelope) error {
 		}
 	}
 
-	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s, permission_mode: %q)",
+	// Emit event and metric
+	ctx := context.Background()
+	cfg := config.Load()
+	provider, err := newProviderFromState(ctx, cfg, store)
+	if err != nil {
+		debug.Log("session start: failed to create provider: %v", err)
+	} else {
+		defer provider.Shutdown(ctx)
+
+		provider.EmitEvent("claude_code.session.start", sess.TraceID, sess.SpanID, map[string]string{
+			"claude_code.session.id":         env.SessionID,
+			"claude_code.session.start_type": event.Source,
+			"claude_code.session.cwd":        env.Cwd,
+			"vcs.ref.head.name":              gitCtx.Branch,
+			"vcs.repository.name":            gitCtx.RepoName,
+			"vcs.repository.owner":           gitCtx.RepoOwner,
+		})
+
+		provider.CounterAdd(ctx, "claude_code.session.count", 1,
+			attribute.String("claude_code.session.start_type", event.Source),
+			attribute.String("claude_code.session.cwd", env.Cwd),
+		)
+	}
+
+	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s)",
 		env.SessionID, sess.TraceID, event.Source, env.Cwd,
-		gitCtx.Branch, gitCtx.RepoOwner, gitCtx.RepoName, env.PermissionMode)
+		gitCtx.Branch, gitCtx.RepoOwner, fmt.Sprintf("%s", gitCtx.RepoName))
 	return nil
 }

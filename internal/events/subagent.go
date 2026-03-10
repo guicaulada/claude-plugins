@@ -81,8 +81,28 @@ func HandleSubagentStart(env payload.Envelope) error {
 
 	_ = store.IncrementCounter(env.SessionID, "subagent_count")
 
+	// Emit event and metric
+	ctx := context.Background()
+	cfg := config.Load()
+	provider, err := newProviderFromState(ctx, cfg, store)
+	if err == nil {
+		defer provider.Shutdown(ctx)
+
+		sess, _ := store.GetSession(env.SessionID)
+		provider.EmitEvent("claude_code.agent.start", sess.TraceID, sa.SpanID, map[string]string{
+			"claude_code.session.id": env.SessionID,
+			"claude_code.agent.type": event.AgentType,
+			"claude_code.agent.name": agentName,
+			"claude_code.agent.id":   event.AgentID,
+		})
+
+		provider.CounterAdd(ctx, "claude_code.subagent.count", 1,
+			attribute.String("claude_code.agent.type", event.AgentType),
+		)
+	}
+
 	debug.Log("subagent start: session=%s agent=%s type=%s id=%s",
-		env.SessionID, event.AgentName, event.AgentType, event.AgentID)
+		env.SessionID, agentName, event.AgentType, event.AgentID)
 	return nil
 }
 
@@ -145,9 +165,23 @@ func HandleSubagentStop(env payload.Envelope) error {
 
 	builder.CreateSpan(saCtx, spanName, startTime, endTime, attrs)
 
+	durationMs := endTime.Sub(startTime).Milliseconds()
+
+	// Emit event
+	provider.EmitEvent("claude_code.agent.stop", sess.TraceID, sa.SpanID, map[string]string{
+		"claude_code.session.id": env.SessionID,
+		"claude_code.agent.type": sa.AgentType,
+		"claude_code.agent.name": sa.AgentName,
+		"claude_code.agent.id":   sa.AgentID,
+	})
+
+	// Emit metric
+	provider.HistogramRecord(ctx, "claude_code.subagent.duration", float64(durationMs),
+		attribute.String("claude_code.agent.type", sa.AgentType),
+	)
+
 	debug.Log("subagent stop: session=%s agent=%s duration=%dms",
-		env.SessionID, sa.AgentType,
-		endTime.Sub(startTime).Milliseconds())
+		env.SessionID, sa.AgentType, durationMs)
 
 	return store.DeleteSubagent(event.AgentID)
 }
