@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -14,17 +15,22 @@ import (
 )
 
 func HandleSessionEnd(env payload.Envelope) error {
+	debug.Log("session end: opening state for %s", env.SessionID)
+
 	store, err := state.Open(env.SessionID)
 	if err != nil {
+		debug.Log("session end: failed to open state: %v", err)
 		return err
 	}
 
 	sess, err := store.GetSession(env.SessionID)
 	if err != nil || sess.SessionID == "" {
-		debug.Log("session end: no state found for %s", env.SessionID)
+		debug.Log("session end: no state found for %s (err: %v)", env.SessionID, err)
 		store.Close()
 		return err
 	}
+
+	debug.Log("session end: found state trace=%s", sess.TraceID)
 
 	// Read aggregated counters
 	promptCount, _ := store.GetCounter(env.SessionID, "prompt_count")
@@ -32,11 +38,27 @@ func HandleSessionEnd(env payload.Envelope) error {
 	errorCount, _ := store.GetCounter(env.SessionID, "error_count")
 	subagentCount, _ := store.GetCounter(env.SessionID, "subagent_count")
 
+	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d",
+		promptCount, toolCount, errorCount, subagentCount)
+
 	// Export the deferred session root span
 	ctx := context.Background()
 	cfg := config.Load()
-	provider, err := pluginotel.NewProvider(ctx, cfg)
+
+	// Load cached headers from state (avoids re-running otelHeadersHelper during shutdown)
+	var providerOpts []pluginotel.ProviderOption
+	if cached, err := store.GetCache("otel_headers"); err == nil && cached != "" {
+		var headers map[string]string
+		if err := json.Unmarshal([]byte(cached), &headers); err == nil && len(headers) > 0 {
+			providerOpts = append(providerOpts, pluginotel.WithHeaders(headers))
+			debug.Log("session end: using %d cached OTel headers", len(headers))
+		}
+	}
+
+	debug.Log("session end: creating OTel provider")
+	provider, err := pluginotel.NewProvider(ctx, cfg, providerOpts...)
 	if err != nil {
+		debug.Log("session end: failed to create provider: %v", err)
 		store.Close()
 		return err
 	}
@@ -46,9 +68,10 @@ func HandleSessionEnd(env payload.Envelope) error {
 	endTime := time.Now()
 	durationMs := endTime.Sub(startTime).Milliseconds()
 
-	// Session root span has no parent — use trace_id only
+	debug.Log("session end: creating root context trace=%s span=%s", sess.TraceID, sess.SpanID)
 	rootCtx, err := pluginotel.RootContext(sess.TraceID, sess.SpanID)
 	if err != nil {
+		debug.Log("session end: failed to create root context: %v", err)
 		store.Close()
 		return err
 	}
@@ -79,11 +102,13 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attrs = append(attrs, attribute.String("vcs.repository.url.full", sess.GitRemoteURL))
 	}
 
+	debug.Log("session end: creating session span")
 	builder.CreateSpan(rootCtx, "session", startTime, endTime, attrs)
 
 	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d)",
 		env.SessionID, sess.TraceID, durationMs,
 		promptCount, toolCount, errorCount, subagentCount)
 
+	debug.Log("session end: cleaning up state")
 	return store.Cleanup()
 }

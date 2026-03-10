@@ -26,30 +26,51 @@ type Provider struct {
 	tracer trace.Tracer
 }
 
+// ProviderOption configures the OTel provider.
+type ProviderOption func(*providerOptions)
+
+type providerOptions struct {
+	headers map[string]string
+}
+
+// WithHeaders passes pre-loaded headers (e.g., from state cache).
+func WithHeaders(headers map[string]string) ProviderOption {
+	return func(o *providerOptions) {
+		o.headers = headers
+	}
+}
+
 // NewProvider creates and configures the OTel TracerProvider.
 // The exporter reads standard OTEL_EXPORTER_OTLP_* env vars automatically.
 // Only plugin-specific overrides (OTEL_PLUGIN_EXPORTER_*) are set programmatically.
-func NewProvider(ctx context.Context, cfg config.Config) (*Provider, error) {
-	opts := []otlptracehttp.Option{
+func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption) (*Provider, error) {
+	var po providerOptions
+	for _, o := range opts {
+		o(&po)
+	}
+
+	exporterOpts := []otlptracehttp.Option{
 		otlptracehttp.WithTimeout(2 * time.Second),
 	}
 
 	// Only override endpoint if plugin-specific env vars are set
 	if endpoint := cfg.PluginEndpoint(); endpoint != "" {
-		opts = append(opts, otlptracehttp.WithEndpoint(endpoint))
+		exporterOpts = append(exporterOpts, otlptracehttp.WithEndpoint(endpoint))
 		if cfg.PluginInsecure() {
-			opts = append(opts, otlptracehttp.WithInsecure())
+			exporterOpts = append(exporterOpts, otlptracehttp.WithInsecure())
 		}
 	}
 
-	// Headers: plugin override > otelHeadersHelper > SDK env var fallback
-	if headers := cfg.PluginHeaders(); len(headers) > 0 {
-		opts = append(opts, otlptracehttp.WithHeaders(headers))
+	// Headers: pre-loaded > plugin override > otelHeadersHelper > SDK env var fallback
+	if len(po.headers) > 0 {
+		exporterOpts = append(exporterOpts, otlptracehttp.WithHeaders(po.headers))
+	} else if headers := cfg.PluginHeaders(); len(headers) > 0 {
+		exporterOpts = append(exporterOpts, otlptracehttp.WithHeaders(headers))
 	} else if headers := config.LoadOTelHeaders(); len(headers) > 0 {
-		opts = append(opts, otlptracehttp.WithHeaders(headers))
+		exporterOpts = append(exporterOpts, otlptracehttp.WithHeaders(headers))
 	}
 
-	exp, err := otlptracehttp.New(ctx, opts...)
+	exp, err := otlptracehttp.New(ctx, exporterOpts...)
 	if err != nil {
 		return nil, err
 	}

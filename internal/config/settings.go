@@ -1,11 +1,13 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/guicaulada/claude-code-otel-plugin/internal/debug"
 )
@@ -79,7 +81,10 @@ func readHelperFromSettings(path string) string {
 }
 
 func runHeadersHelper(script string) (map[string]string, error) {
-	cmd := exec.Command("sh", "-c", script)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "sh", "-c", script)
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err

@@ -105,6 +105,11 @@ CREATE TABLE IF NOT EXISTS counters (
     name TEXT NOT NULL,
     value INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (session_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS cache (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
 );`
 
 	_, err := s.db.Exec(schema)

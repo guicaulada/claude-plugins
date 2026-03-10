@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/guicaulada/claude-code-otel-plugin/internal/config"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/debug"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/idgen"
 	"github.com/guicaulada/claude-code-otel-plugin/internal/payload"
@@ -39,6 +40,17 @@ func HandleSessionStart(env payload.Envelope) error {
 
 	if err := store.CreateSession(sess); err != nil {
 		return err
+	}
+
+	// Cache OTel headers from otelHeadersHelper so SessionEnd
+	// doesn't need to re-run the script (which may fail during shutdown)
+	headers := config.LoadOTelHeaders()
+	if len(headers) > 0 {
+		headersJSON, err := json.Marshal(headers)
+		if err == nil {
+			_ = store.SetCache("otel_headers", string(headersJSON))
+			debug.Log("cached %d OTel headers in state", len(headers))
+		}
 	}
 
 	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s)",
