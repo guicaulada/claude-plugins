@@ -10,14 +10,12 @@ import (
 var Version = "dev"
 
 type Config struct {
-	Enabled         bool
-	Debug           bool
-	Version         string
-	LogUserPrompts  bool
-	LogToolDetails  bool
-	IncludeSessionID  bool
-	IncludeVersion    bool
-	IncludeAccountUUID bool
+	Enabled        bool
+	Debug          bool
+	Version        string
+	LogUserPrompts bool
+	LogToolDetails bool
+	IncludeVersion bool
 }
 
 func Load() Config {
@@ -28,14 +26,12 @@ func Load() Config {
 	enabled := resolveEnabled(pluginEnabled, telemetryEnabled)
 
 	return Config{
-		Enabled:            enabled,
-		Debug:              debug,
-		Version:            Version,
-		LogUserPrompts:     os.Getenv("OTEL_LOG_USER_PROMPTS") == "1",
-		LogToolDetails:     os.Getenv("OTEL_LOG_TOOL_DETAILS") == "1",
-		IncludeSessionID:   os.Getenv("OTEL_METRICS_INCLUDE_SESSION_ID") != "false",
-		IncludeVersion:     os.Getenv("OTEL_METRICS_INCLUDE_VERSION") == "true",
-		IncludeAccountUUID: os.Getenv("OTEL_METRICS_INCLUDE_ACCOUNT_UUID") != "false",
+		Enabled:        enabled,
+		Debug:          debug,
+		Version:        Version,
+		LogUserPrompts: os.Getenv("OTEL_LOG_USER_PROMPTS") == "1",
+		LogToolDetails: os.Getenv("OTEL_LOG_TOOL_DETAILS") == "1",
+		IncludeVersion: os.Getenv("OTEL_METRICS_INCLUDE_VERSION") == "true",
 	}
 }
 
