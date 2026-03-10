@@ -203,17 +203,17 @@ func HandleSubagentStop(env payload.Envelope) error {
 
 	durationMs := endTime.Sub(startTime).Milliseconds()
 
-	// Record event on session span timeline
+	// Record agent.stop event on parent span (Agent tool span)
 	if err := store.RecordEvent(state.SpanEvent{
 		SessionID: env.SessionID,
-		SpanID:    sess.SpanID,
+		SpanID:    sa.ParentSpanID,
 		Name:      "agent.stop",
 		Timestamp: endTime.UnixNano(),
 		Attrs:     fmt.Sprintf(`{"agent.type":"%s","agent.name":"%s","duration_ms":"%d"}`, sa.AgentType, sa.AgentName, durationMs),
 	}); err != nil {
 		debug.Log("failed to record agent.stop event: %v", err)
 	} else {
-		debug.Log("recorded agent.stop event on session span %s", sess.SpanID)
+		debug.Log("recorded agent.stop event on parent span %s", sa.ParentSpanID)
 	}
 
 	// Emit event

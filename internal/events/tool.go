@@ -130,6 +130,17 @@ func HandlePreToolUse(env payload.Envelope) error {
 		provider.EmitEvent("claude_code.tool.start", sess.TraceID, tool.SpanID, startLogAttrs)
 	}
 
+	// Record tool.start event on parent span
+	if err := store.RecordEvent(state.SpanEvent{
+		SessionID: env.SessionID,
+		SpanID:    parentSpanID,
+		Name:      "tool.start",
+		Timestamp: tool.StartTime,
+		Attrs:     fmt.Sprintf(`{"tool.name":"%s"}`, event.ToolName),
+	}); err != nil {
+		debug.Log("failed to record tool.start event: %v", err)
+	}
+
 	debug.Log("pre tool use: session=%s tool=%s id=%s parent=%s",
 		env.SessionID, event.ToolName, event.ToolUseID, parentSpanID)
 	return nil
@@ -232,15 +243,36 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		detectCommit(env, tool, store, &attrs)
 	}
 
+	// Load recorded events for this tool span (e.g., agent.start/stop for Agent tools)
+	var spanEvents []pluginotel.SpanEvent
+	if recorded, err := store.GetEvents(env.SessionID, tool.SpanID); err == nil && len(recorded) > 0 {
+		debug.Log("tool end: loaded %d events for tool span %s", len(recorded), tool.SpanID)
+		for _, re := range recorded {
+			se := pluginotel.SpanEvent{
+				Name: re.Name,
+				Time: time.Unix(0, re.Timestamp),
+			}
+			if re.Attrs != "" {
+				var attrMap map[string]string
+				if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
+					for k, v := range attrMap {
+						se.Attrs = append(se.Attrs, attribute.String(k, v))
+					}
+				}
+			}
+			spanEvents = append(spanEvents, se)
+		}
+	}
+
 	if isError {
 		if errMsg != "" {
 			attrs = append(attrs, attribute.String("claude_code.error.message", errMsg))
 		}
 		attrs = append(attrs, attribute.Bool("claude_code.error.is_interrupt", isInterrupt))
-		builder.CreateErrorSpan(toolCtx, spanName, startTime, endTime, attrs, errMsg)
+		builder.CreateErrorSpan(toolCtx, spanName, startTime, endTime, attrs, errMsg, spanEvents...)
 		_ = store.IncrementCounter(env.SessionID, "error_count")
 	} else {
-		builder.CreateSpan(toolCtx, spanName, startTime, endTime, attrs)
+		builder.CreateSpan(toolCtx, spanName, startTime, endTime, attrs, spanEvents...)
 	}
 
 	_ = store.IncrementCounter(env.SessionID, "tool_count")
