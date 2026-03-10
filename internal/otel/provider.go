@@ -34,7 +34,7 @@ func NewProvider(ctx context.Context, cfg config.Config) (*Provider, error) {
 		otlptracehttp.WithTimeout(2 * time.Second),
 	}
 
-	// Only override if plugin-specific env vars are set
+	// Only override endpoint if plugin-specific env vars are set
 	if endpoint := cfg.PluginEndpoint(); endpoint != "" {
 		opts = append(opts, otlptracehttp.WithEndpoint(endpoint))
 		if cfg.PluginInsecure() {
@@ -42,7 +42,10 @@ func NewProvider(ctx context.Context, cfg config.Config) (*Provider, error) {
 		}
 	}
 
+	// Headers: plugin override > otelHeadersHelper > SDK env var fallback
 	if headers := cfg.PluginHeaders(); len(headers) > 0 {
+		opts = append(opts, otlptracehttp.WithHeaders(headers))
+	} else if headers := config.LoadOTelHeaders(); len(headers) > 0 {
 		opts = append(opts, otlptracehttp.WithHeaders(headers))
 	}
 
