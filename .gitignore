@@ -1,0 +1,22 @@
+# Binaries
+bin/
+/handler
+*.exe
+
+# Go build
+*.o
+*.a
+*.so
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug logs
+/tmp/claude-code-otel-plugin/
