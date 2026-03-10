@@ -112,15 +112,6 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attrs = append(attrs, attribute.String("vcs.repository.url.full", sess.GitRemoteURL))
 	}
 
-	// Record session.end event
-	_ = store.RecordEvent(state.SpanEvent{
-		SessionID: env.SessionID,
-		SpanID:    sess.SpanID,
-		Name:      "session.end",
-		Timestamp: endTime.UnixNano(),
-		Attrs:     fmt.Sprintf(`{"end_reason":"%s","duration_ms":"%d"}`, event.Reason, durationMs),
-	})
-
 	// Load recorded events for the session span
 	var spanEvents []pluginotel.SpanEvent
 	if recorded, err := store.GetEvents(env.SessionID, sess.SpanID); err == nil {
