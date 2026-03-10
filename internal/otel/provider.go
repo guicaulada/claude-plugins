@@ -159,7 +159,10 @@ func newTracerProvider(ctx context.Context, cfg config.Config, po providerOption
 	}
 
 	return sdktrace.NewTracerProvider(
-		sdktrace.WithSyncer(exp),
+		sdktrace.WithBatcher(exp,
+			sdktrace.WithBatchTimeout(100*time.Millisecond),
+			sdktrace.WithMaxExportBatchSize(512),
+		),
 		sdktrace.WithResource(res),
 		sdktrace.WithIDGenerator(newFixedIDGenerator()),
 	), nil
