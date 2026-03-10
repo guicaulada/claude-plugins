@@ -127,6 +127,9 @@ func HandlePreToolUse(env payload.Envelope) error {
 				startLogAttrs["claude_code.file.language"] = startFi.Language
 			}
 		}
+		if cfg.LogToolDetails {
+			addToolInputDetails(startLogAttrs, event.ToolName, event.ToolInput)
+		}
 		provider.EmitEvent("claude_code.tool.start", sess.TraceID, tool.SpanID, startLogAttrs)
 	}
 
@@ -315,6 +318,9 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 			logAttrs["claude_code.error.message"] = errMsg
 		}
 		logAttrs["claude_code.error.is_interrupt"] = fmt.Sprintf("%v", isInterrupt)
+	}
+	if cfg.LogToolDetails {
+		addToolInputDetails(logAttrs, event.ToolName, event.ToolInput)
 	}
 	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, logAttrs)
 
