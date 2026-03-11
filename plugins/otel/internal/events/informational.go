@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
@@ -50,7 +51,7 @@ func HandlePermissionRequest(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.tool.name"] = event.ToolName
+	logAttrs = append(logAttrs, log.String("claude_code.tool.name", event.ToolName))
 	provider.EmitEvent("claude_code.permission.request", sess.TraceID, sess.SpanID, logAttrs)
 
 	parentSpanID := bestParentSpanID(store, env, sess)
@@ -98,12 +99,12 @@ func HandleNotification(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.notification.type"] = event.NotificationType
+	logAttrs = append(logAttrs, log.String("claude_code.notification.type", event.NotificationType))
 	if event.Title != "" {
-		logAttrs["claude_code.notification.title"] = event.Title
+		logAttrs = append(logAttrs, log.String("claude_code.notification.title", event.Title))
 	}
 	if cfg.LogToolDetails && event.Message != "" {
-		logAttrs["claude_code.notification.message"] = event.Message
+		logAttrs = append(logAttrs, log.String("claude_code.notification.message", event.Message))
 	}
 	provider.EmitEvent("claude_code.notification", sess.TraceID, sess.SpanID, logAttrs)
 
@@ -158,16 +159,18 @@ func HandleTaskCompleted(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.task.id"] = event.TaskID
-	logAttrs["claude_code.task.subject"] = event.TaskSubject
+	logAttrs = append(logAttrs,
+		log.String("claude_code.task.id", event.TaskID),
+		log.String("claude_code.task.subject", event.TaskSubject),
+	)
 	if cfg.LogUserPrompts && event.TaskDescription != "" {
-		logAttrs["claude_code.task.description"] = event.TaskDescription
+		logAttrs = append(logAttrs, log.String("claude_code.task.description", event.TaskDescription))
 	}
 	if event.TeammateName != "" {
-		logAttrs["claude_code.task.teammate_name"] = event.TeammateName
+		logAttrs = append(logAttrs, log.String("claude_code.task.teammate_name", event.TeammateName))
 	}
 	if event.TeamName != "" {
-		logAttrs["claude_code.task.team_name"] = event.TeamName
+		logAttrs = append(logAttrs, log.String("claude_code.task.team_name", event.TeamName))
 	}
 	provider.EmitEvent("claude_code.task.completed", sess.TraceID, sess.SpanID, logAttrs)
 
@@ -220,14 +223,16 @@ func HandleInstructionsLoaded(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.instructions.file_path"] = event.FilePath
-	logAttrs["claude_code.instructions.memory_type"] = event.MemoryType
-	logAttrs["claude_code.instructions.load_reason"] = event.LoadReason
+	logAttrs = append(logAttrs,
+		log.String("claude_code.instructions.file_path", event.FilePath),
+		log.String("claude_code.instructions.memory_type", event.MemoryType),
+		log.String("claude_code.instructions.load_reason", event.LoadReason),
+	)
 	if event.TriggerFilePath != "" {
-		logAttrs["claude_code.instructions.trigger_file_path"] = event.TriggerFilePath
+		logAttrs = append(logAttrs, log.String("claude_code.instructions.trigger_file_path", event.TriggerFilePath))
 	}
 	if event.ParentFilePath != "" {
-		logAttrs["claude_code.instructions.parent_file_path"] = event.ParentFilePath
+		logAttrs = append(logAttrs, log.String("claude_code.instructions.parent_file_path", event.ParentFilePath))
 	}
 	provider.EmitEvent("claude_code.instructions.loaded", sess.TraceID, sess.SpanID, logAttrs)
 
@@ -274,9 +279,9 @@ func HandleConfigChange(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.config.source"] = event.Source
+	logAttrs = append(logAttrs, log.String("claude_code.config.source", event.Source))
 	if event.FilePath != "" {
-		logAttrs["claude_code.config.file_path"] = event.FilePath
+		logAttrs = append(logAttrs, log.String("claude_code.config.file_path", event.FilePath))
 	}
 	provider.EmitEvent("claude_code.config.change", sess.TraceID, sess.SpanID, logAttrs)
 
@@ -321,7 +326,7 @@ func HandleWorktreeCreate(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.worktree.name"] = event.Name
+	logAttrs = append(logAttrs, log.String("claude_code.worktree.name", event.Name))
 	provider.EmitEvent("claude_code.worktree.create", sess.TraceID, sess.SpanID, logAttrs)
 
 	parentSpanID := bestParentSpanID(store, env, sess)
@@ -365,7 +370,7 @@ func HandleWorktreeRemove(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.worktree.path"] = event.WorktreePath
+	logAttrs = append(logAttrs, log.String("claude_code.worktree.path", event.WorktreePath))
 	provider.EmitEvent("claude_code.worktree.remove", sess.TraceID, sess.SpanID, logAttrs)
 
 	parentSpanID := bestParentSpanID(store, env, sess)
@@ -410,8 +415,10 @@ func HandleTeammateIdle(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.teammate.name"] = event.TeammateName
-	logAttrs["claude_code.teammate.team_name"] = event.TeamName
+	logAttrs = append(logAttrs,
+		log.String("claude_code.teammate.name", event.TeammateName),
+		log.String("claude_code.teammate.team_name", event.TeamName),
+	)
 	provider.EmitEvent("claude_code.teammate.idle", sess.TraceID, sess.SpanID, logAttrs)
 
 	parentSpanID := bestParentSpanID(store, env, sess)
@@ -458,9 +465,9 @@ func HandlePreCompact(env payload.Envelope) error {
 
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.compact.trigger"] = event.Trigger
+	logAttrs = append(logAttrs, log.String("claude_code.compact.trigger", event.Trigger))
 	if cfg.LogUserPrompts && event.CustomInstructions != "" {
-		logAttrs["claude_code.compact.custom_instructions"] = event.CustomInstructions
+		logAttrs = append(logAttrs, log.String("claude_code.compact.custom_instructions", event.CustomInstructions))
 	}
 	provider.EmitEvent("claude_code.compact", sess.TraceID, sess.SpanID, logAttrs)
 
@@ -480,4 +487,3 @@ func HandlePreCompact(env payload.Envelope) error {
 	debug.Log("pre compact: session=%s trigger=%s", env.SessionID, event.Trigger)
 	return nil
 }
-

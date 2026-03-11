@@ -3,10 +3,10 @@ package events
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
@@ -194,9 +194,11 @@ func HandleSessionEnd(env payload.Envelope) error {
 
 	// Emit event
 	logAttrs := commonLogAttrsFromSession(env, sess)
-	logAttrs["claude_code.session.end_reason"] = event.Reason
-	logAttrs["claude_code.session.start_type"] = sess.StartType
-	logAttrs["claude_code.session.duration_ms"] = fmt.Sprintf("%d", durationMs)
+	logAttrs = append(logAttrs,
+		log.String("claude_code.session.end_reason", event.Reason),
+		log.String("claude_code.session.start_type", sess.StartType),
+		log.Int64("claude_code.session.duration_ms", durationMs),
+	)
 	provider.EmitEvent("claude_code.session.end", sess.TraceID, sess.SpanID, logAttrs)
 
 	// Emit metric

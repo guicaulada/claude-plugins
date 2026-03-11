@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
@@ -85,8 +86,10 @@ func HandleStop(env payload.Envelope) error {
 
 	// Emit event
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.prompt.index"] = fmt.Sprintf("%d", prompt.PromptIndex)
-	logAttrs["claude_code.prompt.duration_ms"] = fmt.Sprintf("%d", durationMs)
+	logAttrs = append(logAttrs,
+		log.Int("claude_code.prompt.index", prompt.PromptIndex),
+		log.Int64("claude_code.prompt.duration_ms", durationMs),
+	)
 	provider.EmitEvent("claude_code.prompt.stop", sess.TraceID, prompt.SpanID, logAttrs)
 
 	// Emit metric

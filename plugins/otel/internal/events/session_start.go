@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
@@ -36,16 +37,16 @@ func HandleSessionStart(env payload.Envelope) error {
 	gitCtx := gitpkg.GetContext(env.Cwd)
 
 	sess := state.Session{
-		SessionID: env.SessionID,
-		TraceID:   idgen.TraceID(),
-		SpanID:    idgen.SpanID(),
-		StartTime: time.Now().UnixNano(),
-		Cwd:       env.Cwd,
-		StartType: event.Source,
-		GitBranch:      gitCtx.Branch,
-		GitRemoteURL:   gitCtx.RemoteURL,
-		GitRepoName:    gitCtx.RepoName,
-		GitRepoOwner:   gitCtx.RepoOwner,
+		SessionID:    env.SessionID,
+		TraceID:      idgen.TraceID(),
+		SpanID:       idgen.SpanID(),
+		StartTime:    time.Now().UnixNano(),
+		Cwd:          env.Cwd,
+		StartType:    event.Source,
+		GitBranch:    gitCtx.Branch,
+		GitRemoteURL: gitCtx.RemoteURL,
+		GitRepoName:  gitCtx.RepoName,
+		GitRepoOwner: gitCtx.RepoOwner,
 	}
 
 	if err := store.CreateSession(sess); err != nil {
@@ -67,7 +68,7 @@ func HandleSessionStart(env payload.Envelope) error {
 		defer provider.Shutdown(ctx)
 
 		logAttrs := commonLogAttrs(env)
-		logAttrs["claude_code.session.start_type"] = event.Source
+		logAttrs = append(logAttrs, log.String("claude_code.session.start_type", event.Source))
 		provider.EmitEvent("claude_code.session.start", sess.TraceID, sess.SpanID, logAttrs)
 
 		metricAttrs := []attribute.KeyValue{

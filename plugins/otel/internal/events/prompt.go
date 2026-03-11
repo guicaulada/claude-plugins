@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
@@ -72,9 +73,9 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 
 		sess, _ := store.GetSession(env.SessionID)
 		logAttrs := commonLogAttrs(env)
-		logAttrs["claude_code.prompt.index"] = fmt.Sprintf("%d", prompt.PromptIndex)
+		logAttrs = append(logAttrs, log.Int("claude_code.prompt.index", prompt.PromptIndex))
 		if cfg.LogUserPrompts && event.Prompt != "" {
-			logAttrs["claude_code.prompt.content"] = event.Prompt
+			logAttrs = append(logAttrs, log.String("claude_code.prompt.content", event.Prompt))
 		}
 		provider.EmitEvent("claude_code.prompt.submit", sess.TraceID, prompt.SpanID, logAttrs)
 

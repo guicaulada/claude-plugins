@@ -1,10 +1,14 @@
 package events
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"go.opentelemetry.io/otel/log"
+)
 
 // addToolInputDetails extracts safe details from tool_input and adds them
 // to log attributes. Only called when OTEL_LOG_TOOL_DETAILS=1.
-func addToolInputDetails(attrs map[string]string, toolName string, toolInput json.RawMessage) {
+func addToolInputDetails(attrs *[]log.KeyValue, toolName string, toolInput json.RawMessage) {
 	if len(toolInput) == 0 {
 		return
 	}
@@ -18,10 +22,10 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.Command != "" {
-				attrs["claude_code.tool.input.command"] = input.Command
+				*attrs = append(*attrs, log.String("claude_code.tool.input.command", input.Command))
 			}
 			if input.Description != "" {
-				attrs["claude_code.tool.input.description"] = input.Description
+				*attrs = append(*attrs, log.String("claude_code.tool.input.description", input.Description))
 			}
 		}
 
@@ -32,7 +36,7 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.FilePath != "" {
-				attrs["claude_code.tool.input.file_path"] = input.FilePath
+				*attrs = append(*attrs, log.String("claude_code.tool.input.file_path", input.FilePath))
 			}
 		}
 
@@ -42,7 +46,7 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.FilePath != "" {
-				attrs["claude_code.tool.input.file_path"] = input.FilePath
+				*attrs = append(*attrs, log.String("claude_code.tool.input.file_path", input.FilePath))
 			}
 		}
 
@@ -54,7 +58,7 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.FilePath != "" {
-				attrs["claude_code.tool.input.file_path"] = input.FilePath
+				*attrs = append(*attrs, log.String("claude_code.tool.input.file_path", input.FilePath))
 			}
 		}
 
@@ -65,10 +69,10 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.Pattern != "" {
-				attrs["claude_code.tool.input.pattern"] = input.Pattern
+				*attrs = append(*attrs, log.String("claude_code.tool.input.pattern", input.Pattern))
 			}
 			if input.Path != "" {
-				attrs["claude_code.tool.input.path"] = input.Path
+				*attrs = append(*attrs, log.String("claude_code.tool.input.path", input.Path))
 			}
 		}
 
@@ -80,13 +84,13 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.Pattern != "" {
-				attrs["claude_code.tool.input.pattern"] = input.Pattern
+				*attrs = append(*attrs, log.String("claude_code.tool.input.pattern", input.Pattern))
 			}
 			if input.Path != "" {
-				attrs["claude_code.tool.input.path"] = input.Path
+				*attrs = append(*attrs, log.String("claude_code.tool.input.path", input.Path))
 			}
 			if input.Glob != "" {
-				attrs["claude_code.tool.input.glob"] = input.Glob
+				*attrs = append(*attrs, log.String("claude_code.tool.input.glob", input.Glob))
 			}
 		}
 
@@ -97,10 +101,10 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.Description != "" {
-				attrs["claude_code.tool.input.description"] = input.Description
+				*attrs = append(*attrs, log.String("claude_code.tool.input.description", input.Description))
 			}
 			if input.SubagentType != "" {
-				attrs["claude_code.tool.input.subagent_type"] = input.SubagentType
+				*attrs = append(*attrs, log.String("claude_code.tool.input.subagent_type", input.SubagentType))
 			}
 		}
 
@@ -110,7 +114,7 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.URL != "" {
-				attrs["claude_code.tool.input.url"] = input.URL
+				*attrs = append(*attrs, log.String("claude_code.tool.input.url", input.URL))
 			}
 		}
 
@@ -120,7 +124,7 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.Query != "" {
-				attrs["claude_code.tool.input.query"] = input.Query
+				*attrs = append(*attrs, log.String("claude_code.tool.input.query", input.Query))
 			}
 		}
 
@@ -131,7 +135,7 @@ func addToolInputDetails(attrs map[string]string, toolName string, toolInput jso
 		}
 		if json.Unmarshal(toolInput, &input) == nil {
 			if input.Skill != "" {
-				attrs["claude_code.tool.input.skill"] = input.Skill
+				*attrs = append(*attrs, log.String("claude_code.tool.input.skill", input.Skill))
 			}
 		}
 	}

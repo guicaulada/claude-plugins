@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
@@ -117,18 +118,22 @@ func HandlePreToolUse(env payload.Envelope) error {
 
 		sess, _ := store.GetSession(env.SessionID)
 		startLogAttrs := commonLogAttrs(env)
-		startLogAttrs["claude_code.tool.name"] = event.ToolName
-		startLogAttrs["claude_code.tool.use_id"] = event.ToolUseID
+		startLogAttrs = append(startLogAttrs,
+			log.String("claude_code.tool.name", event.ToolName),
+			log.String("claude_code.tool.use_id", event.ToolUseID),
+		)
 		if tool.FilePath != "" {
 			startFi := fileinfo.FromPath(tool.FilePath)
-			startLogAttrs["claude_code.file.path"] = startFi.Path
-			startLogAttrs["claude_code.file.extension"] = startFi.Extension
+			startLogAttrs = append(startLogAttrs,
+				log.String("claude_code.file.path", startFi.Path),
+				log.String("claude_code.file.extension", startFi.Extension),
+			)
 			if startFi.Language != "" {
-				startLogAttrs["claude_code.file.language"] = startFi.Language
+				startLogAttrs = append(startLogAttrs, log.String("claude_code.file.language", startFi.Language))
 			}
 		}
 		if cfg.LogToolDetails {
-			addToolInputDetails(startLogAttrs, event.ToolName, event.ToolInput)
+			addToolInputDetails(&startLogAttrs, event.ToolName, event.ToolInput)
 		}
 		provider.EmitEvent("claude_code.tool.start", sess.TraceID, tool.SpanID, startLogAttrs)
 	}
@@ -299,26 +304,30 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		eventName = "claude_code.tool.error"
 	}
 	logAttrs := commonLogAttrs(env)
-	logAttrs["claude_code.tool.name"] = event.ToolName
-	logAttrs["claude_code.tool.use_id"] = event.ToolUseID
-	logAttrs["claude_code.tool.duration_ms"] = fmt.Sprintf("%d", durationMs)
-	logAttrs["claude_code.tool.success"] = fmt.Sprintf("%v", !isError)
+	logAttrs = append(logAttrs,
+		log.String("claude_code.tool.name", event.ToolName),
+		log.String("claude_code.tool.use_id", event.ToolUseID),
+		log.Int64("claude_code.tool.duration_ms", durationMs),
+		log.Bool("claude_code.tool.success", !isError),
+	)
 	if tool.FilePath != "" {
 		fi := fileinfo.FromPath(tool.FilePath)
-		logAttrs["claude_code.file.path"] = fi.Path
-		logAttrs["claude_code.file.extension"] = fi.Extension
+		logAttrs = append(logAttrs,
+			log.String("claude_code.file.path", fi.Path),
+			log.String("claude_code.file.extension", fi.Extension),
+		)
 		if fi.Language != "" {
-			logAttrs["claude_code.file.language"] = fi.Language
+			logAttrs = append(logAttrs, log.String("claude_code.file.language", fi.Language))
 		}
 	}
 	if isError {
 		if errMsg != "" {
-			logAttrs["claude_code.error.message"] = errMsg
+			logAttrs = append(logAttrs, log.String("claude_code.error.message", errMsg))
 		}
-		logAttrs["claude_code.error.is_interrupt"] = fmt.Sprintf("%v", isInterrupt)
+		logAttrs = append(logAttrs, log.Bool("claude_code.error.is_interrupt", isInterrupt))
 	}
 	if cfg.LogToolDetails {
-		addToolInputDetails(logAttrs, event.ToolName, event.ToolInput)
+		addToolInputDetails(&logAttrs, event.ToolName, event.ToolInput)
 	}
 	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, logAttrs)
 

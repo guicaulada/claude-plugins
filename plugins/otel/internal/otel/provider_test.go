@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
 )
@@ -105,8 +106,8 @@ func TestProviderEmitsLog(t *testing.T) {
 		t.Fatalf("NewProvider: %v", err)
 	}
 
-	provider.EmitEvent("test.event", "", "", map[string]string{
-		"key": "value",
+	provider.EmitEvent("test.event", "", "", []log.KeyValue{
+		log.String("key", "value"),
 	})
 
 	provider.Shutdown(ctx)

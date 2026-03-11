@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
@@ -91,9 +92,11 @@ func HandleSubagentStart(env payload.Envelope) error {
 
 		sess, _ := store.GetSession(env.SessionID)
 		startLogAttrs := commonLogAttrs(env)
-		startLogAttrs["claude_code.agent.type"] = event.AgentType
-		startLogAttrs["claude_code.agent.name"] = agentName
-		startLogAttrs["claude_code.agent.id"] = event.AgentID
+		startLogAttrs = append(startLogAttrs,
+			log.String("claude_code.agent.type", event.AgentType),
+			log.String("claude_code.agent.name", agentName),
+			log.String("claude_code.agent.id", event.AgentID),
+		)
 		provider.EmitEvent("claude_code.agent.start", sess.TraceID, sa.SpanID, startLogAttrs)
 
 		// Record event on parent span timeline (prompt)
@@ -204,10 +207,12 @@ func HandleSubagentStop(env payload.Envelope) error {
 
 	// Emit event
 	stopLogAttrs := commonLogAttrs(env)
-	stopLogAttrs["claude_code.agent.type"] = sa.AgentType
-	stopLogAttrs["claude_code.agent.name"] = sa.AgentName
-	stopLogAttrs["claude_code.agent.id"] = sa.AgentID
-	stopLogAttrs["claude_code.agent.duration_ms"] = fmt.Sprintf("%d", durationMs)
+	stopLogAttrs = append(stopLogAttrs,
+		log.String("claude_code.agent.type", sa.AgentType),
+		log.String("claude_code.agent.name", sa.AgentName),
+		log.String("claude_code.agent.id", sa.AgentID),
+		log.Int64("claude_code.agent.duration_ms", durationMs),
+	)
 	provider.EmitEvent("claude_code.agent.stop", sess.TraceID, sa.SpanID, stopLogAttrs)
 
 	// Emit metric
