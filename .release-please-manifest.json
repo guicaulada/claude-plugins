@@ -1,4 +1,4 @@
 {
   ".": "0.2.3",
-  "plugins/otel": "0.2.1"
+  "plugins/otel": "0.2.2"
 }
