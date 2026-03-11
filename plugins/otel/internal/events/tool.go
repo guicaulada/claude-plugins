@@ -388,12 +388,12 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 
 		if linesAdded > 0 {
 			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesAdded),
-				append(lineAttrs, attribute.String("type", "added"))...,
+				append(lineAttrs, attribute.String("claude_code.change_type", "added"))...,
 			)
 		}
 		if linesRemoved > 0 {
 			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesRemoved),
-				append(lineAttrs, attribute.String("type", "removed"))...,
+				append(lineAttrs, attribute.String("claude_code.change_type", "removed"))...,
 			)
 		}
 	}
