@@ -126,7 +126,6 @@ func TestProviderRecordsMetric(t *testing.T) {
 	cfg := config.Config{
 		Enabled:        true,
 		Version:        "test",
-		IncludeVersion: true,
 	}
 
 	ctx := context.Background()

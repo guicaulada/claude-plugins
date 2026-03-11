@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -38,8 +37,7 @@ type Provider struct {
 	lp              *sdklog.LoggerProvider
 	tracer          trace.Tracer
 	logger          otellog.Logger
-	instruments     instruments
-	metricBaseAttrs []attribute.KeyValue // cardinality-controlled attrs for all metrics
+	instruments instruments
 }
 
 // ProviderOption configures the OTel provider.
@@ -105,12 +103,6 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		return nil, err
 	}
 
-	// Build cardinality-controlled metric base attrs
-	var metricBaseAttrs []attribute.KeyValue
-	if cfg.IncludeVersion {
-		metricBaseAttrs = append(metricBaseAttrs, attribute.String("app.version", cfg.Version))
-	}
-
 	meter := mp.Meter(MeterName)
 
 	return &Provider{
@@ -119,8 +111,7 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		lp:              lp,
 		tracer:          tp.Tracer(TracerName),
 		logger:          lp.Logger(LoggerName),
-		instruments:     newInstruments(meter),
-		metricBaseAttrs: metricBaseAttrs,
+		instruments: newInstruments(meter),
 	}, nil
 }
 
@@ -158,7 +149,7 @@ func newResource(ctx context.Context, cfg config.Config) (*resource.Resource, er
 		resource.WithTelemetrySDK(),
 		resource.WithAttributes(
 			semconv.ServiceName(ServiceName),
-			attribute.String("service.version", cfg.Version),
+			semconv.ServiceVersion(cfg.Version),
 		),
 	)
 }

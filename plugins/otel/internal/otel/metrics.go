@@ -95,25 +95,21 @@ func newInstruments(meter otelmetric.Meter) instruments {
 }
 
 // CounterAdd increments a named counter metric with the given attributes.
-// Cardinality-controlled base attributes (app.version) are automatically appended.
 func (p *Provider) CounterAdd(ctx context.Context, name string, value int64, attrs ...attribute.KeyValue) {
 	counter, ok := p.instruments.counters[name]
 	if !ok {
 		debug.Log("counter %s not registered", name)
 		return
 	}
-	allAttrs := append(attrs, p.metricBaseAttrs...)
-	counter.Add(ctx, value, otelmetric.WithAttributes(allAttrs...))
+	counter.Add(ctx, value, otelmetric.WithAttributes(attrs...))
 }
 
 // HistogramRecord records a value on a named histogram metric with the given attributes.
-// Cardinality-controlled base attributes (app.version) are automatically appended.
 func (p *Provider) HistogramRecord(ctx context.Context, name string, value float64, attrs ...attribute.KeyValue) {
 	histogram, ok := p.instruments.histograms[name]
 	if !ok {
 		debug.Log("histogram %s not registered", name)
 		return
 	}
-	allAttrs := append(attrs, p.metricBaseAttrs...)
-	histogram.Record(ctx, value, otelmetric.WithAttributes(allAttrs...))
+	histogram.Record(ctx, value, otelmetric.WithAttributes(attrs...))
 }

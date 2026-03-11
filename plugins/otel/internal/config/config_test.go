@@ -36,8 +36,6 @@ func TestLoad(t *testing.T) {
 	t.Setenv("OTEL_PLUGIN_DEBUG", "1")
 	t.Setenv("OTEL_LOG_USER_PROMPTS", "1")
 	t.Setenv("OTEL_LOG_TOOL_DETAILS", "1")
-	t.Setenv("OTEL_METRICS_INCLUDE_VERSION", "true")
-
 	cfg := Load()
 	if !cfg.Enabled {
 		t.Error("expected Enabled to be true")
@@ -51,9 +49,6 @@ func TestLoad(t *testing.T) {
 	if !cfg.LogToolDetails {
 		t.Error("expected LogToolDetails to be true")
 	}
-	if !cfg.IncludeVersion {
-		t.Error("expected IncludeVersion to be true")
-	}
 }
 
 func TestLoadDefaults(t *testing.T) {
@@ -62,8 +57,6 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("OTEL_PLUGIN_DEBUG", "")
 	t.Setenv("OTEL_LOG_USER_PROMPTS", "")
 	t.Setenv("OTEL_LOG_TOOL_DETAILS", "")
-	t.Setenv("OTEL_METRICS_INCLUDE_VERSION", "")
-
 	cfg := Load()
 	if cfg.Enabled {
 		t.Error("expected Enabled to be false by default")
@@ -73,9 +66,6 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.LogToolDetails {
 		t.Error("expected LogToolDetails to be false by default")
-	}
-	if cfg.IncludeVersion {
-		t.Error("expected IncludeVersion to be false by default")
 	}
 }
 

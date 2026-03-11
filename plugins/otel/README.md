@@ -63,7 +63,6 @@ The plugin reads standard `OTEL_EXPORTER_OTLP_*` env vars automatically. Plugin-
 |---|---|---|
 | `OTEL_LOG_USER_PROMPTS` | Include prompt content, task descriptions, compact instructions in logs | `0` (disabled) |
 | `OTEL_LOG_TOOL_DETAILS` | Include tool input details (bash commands, file paths, patterns, URLs) in logs | `0` (disabled) |
-| `OTEL_METRICS_INCLUDE_VERSION` | Include `app.version` attribute on all metrics | `false` |
 
 ### Auth & Headers
 

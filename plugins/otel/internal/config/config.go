@@ -1,13 +1,13 @@
 package config
 
 import (
+	"encoding/json"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 )
-
-// Version is set at build time via ldflags.
-var Version = "dev"
 
 type Config struct {
 	Enabled              bool
@@ -15,7 +15,6 @@ type Config struct {
 	Version              string
 	LogUserPrompts       bool
 	LogToolDetails       bool
-	IncludeVersion       bool
 	IncludeHighCardinality bool
 }
 
@@ -29,10 +28,9 @@ func Load() Config {
 	return Config{
 		Enabled:        enabled,
 		Debug:          debug,
-		Version:        Version,
+		Version:        pluginVersion(),
 		LogUserPrompts: os.Getenv("OTEL_LOG_USER_PROMPTS") == "1",
 		LogToolDetails: os.Getenv("OTEL_LOG_TOOL_DETAILS") == "1",
-		IncludeVersion:       os.Getenv("OTEL_METRICS_INCLUDE_VERSION") == "true",
 		IncludeHighCardinality: os.Getenv("OTEL_PLUGIN_METRICS_INCLUDE_HIGH_CARDINALITY") == "true",
 	}
 }
@@ -83,6 +81,42 @@ func stripScheme(endpoint string) string {
 		return u.Host + u.Path
 	}
 	return endpoint
+}
+
+// pluginVersion reads the version from .claude-plugin/plugin.json relative
+// to the binary's location. This ensures the version always matches the
+// plugin.json that release-please manages, regardless of when the binary
+// was built.
+var (
+	pluginVersionOnce  sync.Once
+	pluginVersionValue string
+)
+
+func pluginVersion() string {
+	pluginVersionOnce.Do(func() {
+		pluginVersionValue = "dev"
+		exe, err := os.Executable()
+		if err != nil {
+			return
+		}
+		exe, err = filepath.EvalSymlinks(exe)
+		if err != nil {
+			return
+		}
+		// Binary is at <plugin_root>/bin/handler-*, plugin.json is at <plugin_root>/.claude-plugin/plugin.json
+		pluginRoot := filepath.Dir(filepath.Dir(exe))
+		data, err := os.ReadFile(filepath.Join(pluginRoot, ".claude-plugin", "plugin.json"))
+		if err != nil {
+			return
+		}
+		var meta struct {
+			Version string `json:"version"`
+		}
+		if json.Unmarshal(data, &meta) == nil && meta.Version != "" {
+			pluginVersionValue = meta.Version
+		}
+	})
+	return pluginVersionValue
 }
 
 // parseHeaders parses "key=value,key=value" format into a map.
