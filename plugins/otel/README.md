@@ -54,7 +54,7 @@ The plugin reads standard `OTEL_EXPORTER_OTLP_*` env vars automatically. Plugin-
 | `OTEL_PLUGIN_EXPORTER_OTLP_ENDPOINT` | Plugin-specific endpoint override |
 | `OTEL_PLUGIN_EXPORTER_OTLP_HEADERS` | Plugin-specific headers override |
 | `OTEL_PLUGIN_EXPORTER_OTLP_PROTOCOL` | Plugin-specific protocol override |
-| `OTEL_PLUGIN_OTLP_METRICS_TEMPORALITY_PREFERENCE` | `cumulative` or `delta` (overrides `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`) |
+| `OTEL_PLUGIN_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` | Temporality override: `delta` or `cumulative` (overrides `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`). See [Metrics Temporality](#metrics-temporality) |
 | `OTEL_RESOURCE_ATTRIBUTES` | Custom resource attributes (read by SDK) |
 
 ### Privacy & Detail Control
@@ -137,11 +137,20 @@ The plugin is a Go binary invoked by Claude Code hooks. Each hook event is a sep
 
 Key design decisions:
 - **No long-running process** — each hook invocation is independent
+- **Delta temporality for all metrics** — see [Metrics Temporality](#metrics-temporality)
 - **SQLite with WAL mode** for cross-process state sharing (span correlation, counters)
 - **BatchSpanProcessor** for efficient bulk export at SessionEnd
 - **Shared header cache** in `$TMPDIR/claude-code-otel-plugin/headers.json` across sessions
 - **Graceful degradation** — errors are swallowed silently, debug log when `OTEL_PLUGIN_DEBUG=1`
 - **`service.name: claude-code-otel-plugin`** distinguishes from built-in `claude-code` signals
+
+### Metrics Temporality
+
+This plugin **requires delta temporality** to produce correct metrics. Claude Code sets `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta` by default, so this works out of the box. **Do not override this to `cumulative`** — it will silently break all metrics.
+
+**Why?** Each hook invocation is a short-lived process with a fresh OTel MeterProvider. With cumulative temporality, every counter always reports `1` and every histogram always contains a single observation, because there is no in-process state carried over between invocations. Prometheus-style queries like `rate()`, `increase()`, and `histogram_quantile()` require monotonically increasing cumulative values, which short-lived processes cannot provide. Delta temporality reports only what happened in each invocation (`+1`, `+500ms`), and the backend aggregates the deltas correctly.
+
+If your backend requires cumulative temporality, use an intermediary to convert delta to cumulative before ingestion — for example [Grafana Alloy](https://grafana.com/blog/how-to-use-opentelemetry-and-grafana-alloy-to-convert-delta-to-cumulative-at-scale/) or the [OTel Collector](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/deltatocumulativeprocessor).
 
 ## Development
 
