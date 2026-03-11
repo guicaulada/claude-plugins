@@ -1,20 +1,23 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "simple",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
   "include-component-in-tag": true,
   "separate-pull-requests": true,
   "packages": {
     "plugins/otel": {
+      "release-type": "simple",
       "component": "otel",
       "extra-files": [
         {
           "type": "json",
-          "path": "plugins/otel/.claude-plugin/plugin.json",
+          "path": ".claude-plugin/plugin.json",
           "jsonpath": "$.version"
         },
         {
           "type": "json",
-          "path": ".claude-plugin/marketplace.json",
+          "path": "/.claude-plugin/marketplace.json",
           "jsonpath": "$.plugins[0].version"
         }
       ]
