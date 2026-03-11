@@ -155,6 +155,7 @@ func (p *Provider) Shutdown(ctx context.Context) {
 func newResource(ctx context.Context, cfg config.Config) (*resource.Resource, error) {
 	return resource.New(ctx,
 		resource.WithFromEnv(), // reads OTEL_RESOURCE_ATTRIBUTES
+		resource.WithTelemetrySDK(),
 		resource.WithAttributes(
 			semconv.ServiceName(ServiceName),
 			attribute.String("service.version", cfg.Version),
