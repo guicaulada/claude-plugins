@@ -10,7 +10,9 @@ import (
 // EmitEvent emits an OTel log record with trace correlation.
 // The traceIDHex and spanIDHex are injected into the context so
 // the SDK attaches them to the log record automatically.
-func (p *Provider) EmitEvent(name string, traceIDHex, spanIDHex string, attrs []log.KeyValue) {
+// An optional body provides a human-readable display message; if empty,
+// the event name is used as the body.
+func (p *Provider) EmitEvent(name string, traceIDHex, spanIDHex string, attrs []log.KeyValue, body ...string) {
 	ctx := context.Background()
 
 	// Inject trace context for Loki→Tempo correlation
@@ -25,7 +27,11 @@ func (p *Provider) EmitEvent(name string, traceIDHex, spanIDHex string, attrs []
 	var record log.Record
 	record.SetTimestamp(time.Now())
 	record.SetEventName(name)
-	record.SetBody(log.StringValue(name))
+	bodyText := name
+	if len(body) > 0 && body[0] != "" {
+		bodyText = body[0]
+	}
+	record.SetBody(log.StringValue(bodyText))
 	record.SetSeverity(sev)
 	record.SetSeverityText(sevText)
 	record.AddAttributes(attrs...)

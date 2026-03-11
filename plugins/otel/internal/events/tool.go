@@ -135,7 +135,7 @@ func HandlePreToolUse(env payload.Envelope) error {
 		if cfg.LogToolDetails {
 			addToolInputDetails(&startLogAttrs, event.ToolName, event.ToolInput)
 		}
-		provider.EmitEvent("claude_code.tool.start", sess.TraceID, tool.SpanID, startLogAttrs)
+		provider.EmitEvent("claude_code.tool.start", sess.TraceID, tool.SpanID, startLogAttrs, "tool "+event.ToolName+" started")
 	}
 
 	// Record tool.start event on parent span
@@ -329,7 +329,14 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	if cfg.LogToolDetails {
 		addToolInputDetails(&logAttrs, event.ToolName, event.ToolInput)
 	}
-	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, logAttrs)
+	bodyText := "tool " + event.ToolName + " completed"
+	if isError {
+		bodyText = "tool " + event.ToolName + " failed"
+		if errMsg != "" {
+			bodyText += ": " + errMsg
+		}
+	}
+	provider.EmitEvent(eventName, sess.TraceID, tool.SpanID, logAttrs, bodyText)
 
 	// Emit metrics — build shared file attrs once
 	var fi fileinfo.Info
