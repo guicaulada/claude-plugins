@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/guicaulada/claude-plugins/compare/marketplace-v0.2.3...marketplace-v0.2.4) (2026-03-11)
+
+
+### Features
+
+* **otel:** add skill name to Skill tool spans ([bbba4ad](https://github.com/guicaulada/claude-plugins/commit/bbba4ad642a775c5a1c374012f7e8ed1c14606f3))
+
 ## [0.2.3](https://github.com/guicaulada/claude-plugins/compare/marketplace-v0.2.2...marketplace-v0.2.3) (2026-03-11)
 
 
