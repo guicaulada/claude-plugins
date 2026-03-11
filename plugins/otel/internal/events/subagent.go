@@ -216,7 +216,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 		attribute.String("claude_code.agent.name", sa.AgentName),
 	}
 	saDurationAttrs = append(saDurationAttrs, vcsMetricAttrs(env.Cwd)...)
-	provider.HistogramRecord(ctx, "claude_code.subagent.duration", float64(durationMs), saDurationAttrs...)
+	provider.HistogramRecord(ctx, "claude_code.subagent.duration", endTime.Sub(startTime).Seconds(), saDurationAttrs...)
 
 	debug.Log("subagent stop: session=%s agent=%s duration=%dms",
 		env.SessionID, sa.AgentType, durationMs)

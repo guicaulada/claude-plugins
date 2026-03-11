@@ -357,7 +357,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	}
 	toolDurationAttrs = append(toolDurationAttrs, fileMetricAttrs...)
 	toolDurationAttrs = append(toolDurationAttrs, vcsAttrs...)
-	provider.HistogramRecord(ctx, "claude_code.tool.duration", float64(durationMs), toolDurationAttrs...)
+	provider.HistogramRecord(ctx, "claude_code.tool.duration", endTime.Sub(startTime).Seconds(), toolDurationAttrs...)
 
 	// error.count
 	if isError {
