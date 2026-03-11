@@ -19,12 +19,14 @@ type instruments struct {
 type counterDef struct {
 	name string
 	unit string
+	desc string
 }
 
 // histogramDef defines a histogram metric.
 type histogramDef struct {
 	name    string
 	unit    string
+	desc    string
 	buckets []float64
 }
 
@@ -37,22 +39,22 @@ var (
 )
 
 var counterDefs = []counterDef{
-	{"claude_code.sessions", "{session}"},
-	{"claude_code.prompts", "{prompt}"},
-	{"claude_code.tool.uses", "{use}"},
-	{"claude_code.errors", "{error}"},
-	{"claude_code.lines_changed", "{line}"},
-	{"claude_code.subagents", "{agent}"},
-	{"claude_code.compacts", "{compact}"},
-	{"claude_code.notifications", "{notification}"},
-	{"claude_code.tasks", "{task}"},
+	{"claude_code.sessions", "{session}", "Number of sessions started"},
+	{"claude_code.prompts", "{prompt}", "Number of prompts submitted"},
+	{"claude_code.tool.uses", "{use}", "Number of tool invocations"},
+	{"claude_code.errors", "{error}", "Number of tool errors"},
+	{"claude_code.lines_changed", "{line}", "Lines added or removed"},
+	{"claude_code.subagents", "{agent}", "Number of subagents started"},
+	{"claude_code.compacts", "{compact}", "Number of conversation compactions"},
+	{"claude_code.notifications", "{notification}", "Number of notifications sent"},
+	{"claude_code.tasks", "{task}", "Number of tasks completed"},
 }
 
 var histogramDefs = []histogramDef{
-	{"claude_code.session.duration", "s", sessionBuckets},
-	{"claude_code.prompt.duration", "s", sessionBuckets},
-	{"claude_code.tool.duration", "s", toolBuckets},
-	{"claude_code.subagent.duration", "s", toolBuckets},
+	{"claude_code.session.duration", "s", "Session duration", sessionBuckets},
+	{"claude_code.prompt.duration", "s", "Time from prompt submit to response", sessionBuckets},
+	{"claude_code.tool.duration", "s", "Tool execution duration", toolBuckets},
+	{"claude_code.subagent.duration", "s", "Subagent execution duration", toolBuckets},
 }
 
 func newInstruments(meter otelmetric.Meter) instruments {
@@ -62,7 +64,10 @@ func newInstruments(meter otelmetric.Meter) instruments {
 	}
 
 	for _, d := range counterDefs {
-		c, err := meter.Int64Counter(d.name, otelmetric.WithUnit(d.unit))
+		c, err := meter.Int64Counter(d.name,
+			otelmetric.WithUnit(d.unit),
+			otelmetric.WithDescription(d.desc),
+		)
 		if err != nil {
 			debug.Log("failed to create counter %s: %v", d.name, err)
 			continue
@@ -73,6 +78,7 @@ func newInstruments(meter otelmetric.Meter) instruments {
 	for _, d := range histogramDefs {
 		opts := []otelmetric.Float64HistogramOption{
 			otelmetric.WithUnit(d.unit),
+			otelmetric.WithDescription(d.desc),
 		}
 		if len(d.buckets) > 0 {
 			opts = append(opts, otelmetric.WithExplicitBucketBoundaries(d.buckets...))
