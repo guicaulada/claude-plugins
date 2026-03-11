@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/guicaulada/claude-plugins/compare/marketplace-v0.2.1...marketplace-v0.2.2) (2026-03-11)
+
+
+### Bug Fixes
+
+* use bare plugin name with pluginRoot instead of relative path ([8e0f240](https://github.com/guicaulada/claude-plugins/commit/8e0f240ce4e1438b3af8ea0a12c2e9c65f217dde))
+
 ## [0.2.1](https://github.com/guicaulada/claude-plugins/compare/marketplace-v0.2.0...marketplace-v0.2.1) (2026-03-11)
 
 
