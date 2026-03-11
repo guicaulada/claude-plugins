@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/guicaulada/claude-plugins/compare/marketplace-v0.2.4...marketplace-v0.2.5) (2026-03-11)
+
+
+### Bug Fixes
+
+* **otel:** end orphaned spans at parent end time ([751f46e](https://github.com/guicaulada/claude-plugins/commit/751f46ed78e1afad6c1e70b990be03a691670853))
+
 ## [0.2.4](https://github.com/guicaulada/claude-plugins/compare/marketplace-v0.2.3...marketplace-v0.2.4) (2026-03-11)
 
 
