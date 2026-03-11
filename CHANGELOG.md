@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/guicaulada/claude-plugins/compare/marketplace-v0.2.2...marketplace-v0.2.3) (2026-03-11)
+
+
+### Bug Fixes
+
+* use ./plugins/otel relative path, remove pluginRoot ([503c05e](https://github.com/guicaulada/claude-plugins/commit/503c05eaea99a592befbf9a5391b911449e4ed11))
+
 ## [0.2.2](https://github.com/guicaulada/claude-plugins/compare/marketplace-v0.2.1...marketplace-v0.2.2) (2026-03-11)
 
 
