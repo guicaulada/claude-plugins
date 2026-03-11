@@ -215,6 +215,16 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		attribute.String("claude_code.permission_mode", env.PermissionMode),
 	}
 
+	// Extract skill name for Skill tool spans
+	if event.ToolName == "Skill" {
+		var skillInput struct {
+			Skill string `json:"skill"`
+		}
+		if json.Unmarshal(event.ToolInput, &skillInput) == nil && skillInput.Skill != "" {
+			attrs = append(attrs, attribute.String("claude_code.skill.name", skillInput.Skill))
+		}
+	}
+
 	// VCS enrichment (read fresh — branch/repo can change mid-session)
 	attrs = append(attrs, vcsAttributes(env.Cwd, env.SessionID, store)...)
 
