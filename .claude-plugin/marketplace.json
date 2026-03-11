@@ -12,7 +12,7 @@
   "plugins": [
     {
       "name": "otel",
-      "source": "./otel",
+      "source": "otel",
       "description": "OpenTelemetry traces, metrics, and logs from Claude Code hook lifecycle events",
       "version": "0.2.1",
       "author": {
