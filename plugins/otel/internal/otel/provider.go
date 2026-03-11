@@ -38,6 +38,7 @@ type Provider struct {
 	lp              *sdklog.LoggerProvider
 	tracer          trace.Tracer
 	logger          otellog.Logger
+	instruments     instruments
 	metricBaseAttrs []attribute.KeyValue // cardinality-controlled attrs for all metrics
 }
 
@@ -110,12 +111,15 @@ func NewProvider(ctx context.Context, cfg config.Config, opts ...ProviderOption)
 		metricBaseAttrs = append(metricBaseAttrs, attribute.String("app.version", cfg.Version))
 	}
 
+	meter := mp.Meter(MeterName)
+
 	return &Provider{
 		tp:              tp,
 		mp:              mp,
 		lp:              lp,
 		tracer:          tp.Tracer(TracerName),
 		logger:          lp.Logger(LoggerName),
+		instruments:     newInstruments(meter),
 		metricBaseAttrs: metricBaseAttrs,
 	}, nil
 }
