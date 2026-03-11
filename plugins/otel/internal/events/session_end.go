@@ -169,7 +169,6 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attribute.Int64("claude_code.session.branch_count", branchCount),
 		attribute.Int64("claude_code.session.repo_count", repoCount),
 		attribute.Int64("claude_code.session.interrupted_count", interruptedCount),
-		attribute.Int64("claude_code.session.duration_ms", durationMs),
 	}
 
 	if sess.GitBranch != "" {
