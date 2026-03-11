@@ -23,9 +23,18 @@ type counterDef struct {
 
 // histogramDef defines a histogram metric.
 type histogramDef struct {
-	name string
-	unit string
+	name    string
+	unit    string
+	buckets []float64
 }
+
+// Bucket boundaries in seconds, tailored to each metric's expected distribution.
+var (
+	// Tool durations: ~50ms to a few minutes
+	toolBuckets = []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300}
+	// Session durations: seconds to hours
+	sessionBuckets = []float64{1, 5, 10, 30, 60, 120, 300, 600, 1800, 3600, 7200}
+)
 
 var counterDefs = []counterDef{
 	{"claude_code.sessions", "{session}"},
@@ -40,10 +49,10 @@ var counterDefs = []counterDef{
 }
 
 var histogramDefs = []histogramDef{
-	{"claude_code.session.duration", "s"},
-	{"claude_code.prompt.duration", "s"},
-	{"claude_code.tool.duration", "s"},
-	{"claude_code.subagent.duration", "s"},
+	{"claude_code.session.duration", "s", sessionBuckets},
+	{"claude_code.prompt.duration", "s", sessionBuckets},
+	{"claude_code.tool.duration", "s", toolBuckets},
+	{"claude_code.subagent.duration", "s", toolBuckets},
 }
 
 func newInstruments(meter otelmetric.Meter) instruments {
@@ -62,7 +71,13 @@ func newInstruments(meter otelmetric.Meter) instruments {
 	}
 
 	for _, d := range histogramDefs {
-		h, err := meter.Float64Histogram(d.name, otelmetric.WithUnit(d.unit))
+		opts := []otelmetric.Float64HistogramOption{
+			otelmetric.WithUnit(d.unit),
+		}
+		if len(d.buckets) > 0 {
+			opts = append(opts, otelmetric.WithExplicitBucketBoundaries(d.buckets...))
+		}
+		h, err := meter.Float64Histogram(d.name, opts...)
 		if err != nil {
 			debug.Log("failed to create histogram %s: %v", d.name, err)
 			continue
