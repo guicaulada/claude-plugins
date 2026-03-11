@@ -1,11 +1,13 @@
 {
   "name": "otel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenTelemetry traces, metrics, and logs from Claude Code hook lifecycle events",
   "author": {
-    "name": "Guilherme Caulada"
+    "name": "Guilherme Caulada",
+    "url": "https://github.com/guicaulada"
   },
+  "homepage": "https://github.com/guicaulada/claude-plugins/tree/main/plugins/otel",
   "repository": "https://github.com/guicaulada/claude-plugins",
   "license": "Apache-2.0",
-  "keywords": ["otel", "opentelemetry", "observability", "telemetry", "traces", "metrics"]
+  "keywords": ["otel", "opentelemetry", "observability", "telemetry", "traces", "metrics", "logs"]
 }

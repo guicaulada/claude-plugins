@@ -1,20 +1,29 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "guicaulada-plugins",
-  "description": "A collection of Claude Code plugins",
   "owner": {
     "name": "Guilherme Caulada"
+  },
+  "metadata": {
+    "description": "A collection of Claude Code plugins for observability, productivity, and development workflows",
+    "version": "0.2.0",
+    "pluginRoot": "./plugins"
   },
   "plugins": [
     {
       "name": "otel",
+      "source": "./otel",
       "description": "OpenTelemetry traces, metrics, and logs from Claude Code hook lifecycle events",
-      "version": "0.1.0",
-      "source": "./plugins/otel",
-      "category": "observability",
+      "version": "0.2.0",
       "author": {
         "name": "Guilherme Caulada"
-      }
+      },
+      "homepage": "https://github.com/guicaulada/claude-plugins/tree/main/plugins/otel",
+      "repository": "https://github.com/guicaulada/claude-plugins",
+      "license": "Apache-2.0",
+      "keywords": ["otel", "opentelemetry", "observability", "telemetry", "traces", "metrics", "logs"],
+      "category": "observability",
+      "tags": ["monitoring", "grafana", "tempo", "loki", "mimir"]
     }
   ]
 }

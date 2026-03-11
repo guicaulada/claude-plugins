@@ -6,6 +6,17 @@
   "include-component-in-tag": true,
   "separate-pull-requests": true,
   "packages": {
+    ".": {
+      "release-type": "simple",
+      "component": "marketplace",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": ".claude-plugin/marketplace.json",
+          "jsonpath": "$.metadata.version"
+        }
+      ]
+    },
     "plugins/otel": {
       "release-type": "simple",
       "component": "otel",
