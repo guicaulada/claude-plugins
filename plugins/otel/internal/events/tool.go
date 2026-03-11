@@ -257,24 +257,12 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	}
 
 	// Load recorded events for this tool span (e.g., agent.start/stop for Agent tools)
-	var spanEvents []pluginotel.SpanEvent
-	if recorded, err := store.GetEvents(env.SessionID, tool.SpanID); err == nil && len(recorded) > 0 {
-		debug.Log("tool end: loaded %d events for tool span %s", len(recorded), tool.SpanID)
-		for _, re := range recorded {
-			se := pluginotel.SpanEvent{
-				Name: re.Name,
-				Time: time.Unix(0, re.Timestamp),
-			}
-			if re.Attrs != "" {
-				var attrMap map[string]string
-				if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
-					for k, v := range attrMap {
-						se.Attrs = append(se.Attrs, attribute.String(k, v))
-					}
-				}
-			}
-			spanEvents = append(spanEvents, se)
-		}
+	spanEvents := loadSpanEvents(store, env.SessionID, tool.SpanID)
+	debug.Log("tool end: loaded %d events for tool span %s", len(spanEvents), tool.SpanID)
+
+	// Export orphaned children before the tool span itself (Agent tools parent subagents)
+	if event.ToolName == "Agent" {
+		exportOrphanedSubagents(store, builder, env.SessionID, sess.TraceID, tool.SpanID, endTime)
 	}
 
 	if isError {

@@ -61,6 +61,33 @@ func (s *Store) GetLatestToolByName(sessionID, toolName string) (Tool, error) {
 	return t, err
 }
 
+// GetToolsByParent retrieves all tools with the given parent span ID.
+func (s *Store) GetToolsByParent(sessionID, parentSpanID string) ([]Tool, error) {
+	rows, err := s.db.Query(`
+		SELECT tool_use_id, session_id, span_id, parent_span_id, start_time,
+		       tool_name, file_path, file_snapshot
+		FROM tools WHERE session_id = ? AND parent_span_id = ?
+		ORDER BY start_time ASC`, sessionID, parentSpanID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var tools []Tool
+	for rows.Next() {
+		var t Tool
+		if err := rows.Scan(
+			&t.ToolUseID, &t.SessionID, &t.SpanID, &t.ParentSpanID,
+			&t.StartTime, &t.ToolName, &t.FilePath, &t.FileSnapshot,
+		); err != nil {
+			return nil, err
+		}
+		tools = append(tools, t)
+	}
+	return tools, rows.Err()
+}
+
 // DeleteTool removes a tool by tool_use_id.
 func (s *Store) DeleteTool(toolUseID string) error {
 	_, err := s.db.Exec(`DELETE FROM tools WHERE tool_use_id = ?`, toolUseID)

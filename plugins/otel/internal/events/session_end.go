@@ -70,22 +70,11 @@ func HandleSessionEnd(env payload.Envelope) error {
 			if err != nil {
 				continue
 			}
-			// Load any events recorded for this prompt
-			var promptEvents []pluginotel.SpanEvent
-			if recorded, err := store.GetEvents(env.SessionID, p.SpanID); err == nil {
-				for _, re := range recorded {
-					se := pluginotel.SpanEvent{Name: re.Name, Time: time.Unix(0, re.Timestamp)}
-					if re.Attrs != "" {
-						var attrMap map[string]string
-						if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
-							for k, v := range attrMap {
-								se.Attrs = append(se.Attrs, attribute.String(k, v))
-							}
-						}
-					}
-					promptEvents = append(promptEvents, se)
-				}
-			}
+			// Export orphaned children of this prompt
+			exportOrphanedSubagents(store, builder, env.SessionID, sess.TraceID, p.SpanID, endTime)
+			exportOrphanedTools(store, builder, env.SessionID, sess.TraceID, p.SpanID, endTime)
+
+			promptEvents := loadSpanEvents(store, env.SessionID, p.SpanID)
 			promptAttrs := []attribute.KeyValue{
 				attribute.String("claude_code.session.id", env.SessionID),
 				attribute.Int("claude_code.prompt.index", p.PromptIndex),
@@ -96,30 +85,17 @@ func HandleSessionEnd(env payload.Envelope) error {
 		}
 	}
 
-	// Export orphaned subagents (interrupted, never got SubagentStop)
+	// Export any remaining orphaned subagents (safety net for those not parented to a prompt)
 	if orphanedAgents, err := store.GetOrphanedSubagents(env.SessionID); err == nil && len(orphanedAgents) > 0 {
-		debug.Log("session end: exporting %d orphaned subagent spans", len(orphanedAgents))
+		debug.Log("session end: exporting %d remaining orphaned subagent spans", len(orphanedAgents))
 		for _, sa := range orphanedAgents {
 			saCtx, err := pluginotel.ChildContext(sess.TraceID, sa.ParentSpanID, sa.SpanID)
 			if err != nil {
 				continue
 			}
-			// Load any events recorded for this subagent
-			var saEvents []pluginotel.SpanEvent
-			if recorded, err := store.GetEvents(env.SessionID, sa.SpanID); err == nil {
-				for _, re := range recorded {
-					se := pluginotel.SpanEvent{Name: re.Name, Time: time.Unix(0, re.Timestamp)}
-					if re.Attrs != "" {
-						var attrMap map[string]string
-						if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
-							for k, v := range attrMap {
-								se.Attrs = append(se.Attrs, attribute.String(k, v))
-							}
-						}
-					}
-					saEvents = append(saEvents, se)
-				}
-			}
+			exportOrphanedTools(store, builder, env.SessionID, sess.TraceID, sa.SpanID, endTime)
+
+			saEvents := loadSpanEvents(store, env.SessionID, sa.SpanID)
 			saAttrs := []attribute.KeyValue{
 				attribute.String("claude_code.session.id", env.SessionID),
 				attribute.String("claude_code.agent.type", sa.AgentType),
@@ -132,30 +108,15 @@ func HandleSessionEnd(env payload.Envelope) error {
 		}
 	}
 
-	// Export orphaned tools (interrupted, never got PostToolUse)
+	// Export any remaining orphaned tools (safety net for those not already exported)
 	if orphanedTools, err := store.GetOrphanedTools(env.SessionID); err == nil && len(orphanedTools) > 0 {
-		debug.Log("session end: exporting %d orphaned tool spans", len(orphanedTools))
+		debug.Log("session end: exporting %d remaining orphaned tool spans", len(orphanedTools))
 		for _, tool := range orphanedTools {
 			toolCtx, err := pluginotel.ChildContext(sess.TraceID, tool.ParentSpanID, tool.SpanID)
 			if err != nil {
 				continue
 			}
-			// Load any events recorded for this tool
-			var toolEvents []pluginotel.SpanEvent
-			if recorded, err := store.GetEvents(env.SessionID, tool.SpanID); err == nil {
-				for _, re := range recorded {
-					se := pluginotel.SpanEvent{Name: re.Name, Time: time.Unix(0, re.Timestamp)}
-					if re.Attrs != "" {
-						var attrMap map[string]string
-						if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
-							for k, v := range attrMap {
-								se.Attrs = append(se.Attrs, attribute.String(k, v))
-							}
-						}
-					}
-					toolEvents = append(toolEvents, se)
-				}
-			}
+			toolEvents := loadSpanEvents(store, env.SessionID, tool.SpanID)
 			toolAttrs := []attribute.KeyValue{
 				attribute.String("claude_code.session.id", env.SessionID),
 				attribute.String("claude_code.tool.name", tool.ToolName),
@@ -225,26 +186,8 @@ func HandleSessionEnd(env payload.Envelope) error {
 	}
 
 	// Load recorded events for the session span
-	var spanEvents []pluginotel.SpanEvent
-	if recorded, err := store.GetEvents(env.SessionID, sess.SpanID); err == nil {
-		for _, re := range recorded {
-			se := pluginotel.SpanEvent{
-				Name: re.Name,
-				Time: time.Unix(0, re.Timestamp),
-			}
-			// Parse attrs JSON
-			if re.Attrs != "" {
-				var attrMap map[string]string
-				if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
-					for k, v := range attrMap {
-						se.Attrs = append(se.Attrs, attribute.String(k, v))
-					}
-				}
-			}
-			spanEvents = append(spanEvents, se)
-		}
-		debug.Log("session end: loaded %d span events", len(spanEvents))
-	}
+	spanEvents := loadSpanEvents(store, env.SessionID, sess.SpanID)
+	debug.Log("session end: loaded %d span events", len(spanEvents))
 
 	debug.Log("session end: creating session span")
 	builder.CreateSpan(rootCtx, "session", startTime, endTime, attrs, spanEvents...)

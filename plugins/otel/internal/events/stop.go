@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -64,25 +63,12 @@ func HandleStop(env payload.Envelope) error {
 	attrs = append(attrs, vcsAttributes(env.Cwd, env.SessionID, store)...)
 
 	// Load recorded events for this prompt span (tool calls, agent starts)
-	var spanEvents []pluginotel.SpanEvent
-	if recorded, err := store.GetEvents(env.SessionID, prompt.SpanID); err == nil {
-		debug.Log("stop: loaded %d events for prompt span %s", len(recorded), prompt.SpanID)
-		for _, re := range recorded {
-			se := pluginotel.SpanEvent{
-				Name: re.Name,
-				Time: time.Unix(0, re.Timestamp),
-			}
-			if re.Attrs != "" {
-				var attrMap map[string]string
-				if json.Unmarshal([]byte(re.Attrs), &attrMap) == nil {
-					for k, v := range attrMap {
-						se.Attrs = append(se.Attrs, attribute.String(k, v))
-					}
-				}
-			}
-			spanEvents = append(spanEvents, se)
-		}
-	}
+	spanEvents := loadSpanEvents(store, env.SessionID, prompt.SpanID)
+	debug.Log("stop: loaded %d events for prompt span %s", len(spanEvents), prompt.SpanID)
+
+	// Export orphaned children before the prompt span itself
+	exportOrphanedSubagents(store, builder, env.SessionID, sess.TraceID, prompt.SpanID, endTime)
+	exportOrphanedTools(store, builder, env.SessionID, sess.TraceID, prompt.SpanID, endTime)
 
 	builder.CreateSpan(promptCtx, "prompt", startTime, endTime, attrs, spanEvents...)
 
