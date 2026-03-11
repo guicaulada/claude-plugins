@@ -13,7 +13,7 @@
       "name": "otel",
       "source": "./plugins/otel",
       "description": "OpenTelemetry traces, metrics, and logs from Claude Code hook lifecycle events",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": {
         "name": "Guilherme Caulada"
       },

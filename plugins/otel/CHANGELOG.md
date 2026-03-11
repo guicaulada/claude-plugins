@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/guicaulada/claude-plugins/compare/otel-v0.2.1...otel-v0.2.2) (2026-03-11)
+
+
+### Features
+
+* **otel:** add skill name to Skill tool spans ([bbba4ad](https://github.com/guicaulada/claude-plugins/commit/bbba4ad642a775c5a1c374012f7e8ed1c14606f3))
+
 ## [0.2.1](https://github.com/guicaulada/claude-plugins/compare/otel-v0.2.0...otel-v0.2.1) (2026-03-11)
 
 
