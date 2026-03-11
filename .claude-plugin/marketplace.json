@@ -6,13 +6,12 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins for observability, productivity, and development workflows",
-    "version": "0.2.2",
-    "pluginRoot": "./plugins"
+    "version": "0.2.2"
   },
   "plugins": [
     {
       "name": "otel",
-      "source": "otel",
+      "source": "./plugins/otel",
       "description": "OpenTelemetry traces, metrics, and logs from Claude Code hook lifecycle events",
       "version": "0.2.1",
       "author": {
