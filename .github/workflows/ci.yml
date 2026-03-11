@@ -10,6 +10,7 @@ permissions: {}
 
 jobs:
   detect-plugins:
+    name: Detect changed plugins
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -20,16 +21,21 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Detect changed Go plugins
         id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           # All Go plugins in the repo
           all_plugins=$(find plugins -name "go.mod" -exec dirname {} \; | sort)
 
           # Determine changed files
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            changed=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} || echo "")
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            changed=$(git diff --name-only "$PR_BASE_SHA" "$HEAD_SHA" || echo "")
           else
             changed=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
           fi
@@ -58,6 +64,7 @@ jobs:
           echo "Changed Go plugins: $json"
 
   test-go:
+    name: Test Go plugin
     needs: detect-plugins
     if: needs.detect-plugins.outputs.go-plugins != '[]'
     runs-on: ubuntu-latest
@@ -72,6 +79,8 @@ jobs:
         working-directory: ${{ matrix.plugin }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
@@ -93,6 +102,7 @@ jobs:
         run: CGO_ENABLED=0 go build -o /dev/null ./cmd/handler
 
   build-go:
+    name: Build Go plugin
     needs: detect-plugins
     if: needs.detect-plugins.outputs.go-plugins != '[]'
     runs-on: ubuntu-latest
@@ -112,6 +122,8 @@ jobs:
         working-directory: ${{ matrix.plugin }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
@@ -122,4 +134,4 @@ jobs:
           CGO_ENABLED: "0"
           GOOS: ${{ matrix.target.goos }}
           GOARCH: ${{ matrix.target.goarch }}
-        run: go build -ldflags "-s -w" -o handler-${{ matrix.target.goos }}-${{ matrix.target.goarch }} ./cmd/handler
+        run: go build -ldflags "-s -w" -o "handler-${GOOS}-${GOARCH}" ./cmd/handler
