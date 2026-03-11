@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/guicaulada/claude-plugins/compare/otel-v0.2.0...otel-v0.2.1) (2026-03-11)
+
+
+### Features
+
+* add marketplace component to release-please, complete metadata ([7181fd1](https://github.com/guicaulada/claude-plugins/commit/7181fd1c14eea74086b6031758f72ee00634784c))
+
 ## [0.2.0](https://github.com/guicaulada/claude-plugins/compare/otel-v0.1.0...otel-v0.2.0) (2026-03-11)
 
 
