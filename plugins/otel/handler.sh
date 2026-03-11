@@ -1,8 +1,6 @@
 #!/bin/sh
-# Platform dispatch wrapper for claude-code-otel-plugin
+# Platform dispatch wrapper for otel plugin.
 # Detects OS and architecture, then execs the correct binary.
-
-set -e
 
 PLUGIN_ROOT="$(cd "$(dirname "$0")" && pwd)"
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"

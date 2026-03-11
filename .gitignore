@@ -1,5 +1,4 @@
-# Binaries
-bin/
+# Binaries (platform binaries are committed for plugin distribution)
 /handler
 *.exe
 
