@@ -21,8 +21,8 @@
       "homepage": "https://github.com/guicaulada/claude-plugins/tree/main/plugins/otel",
       "repository": "https://github.com/guicaulada/claude-plugins",
       "license": "Apache-2.0",
-      "keywords": ["otel", "opentelemetry", "observability", "telemetry", "traces", "metrics", "logs"],
       "category": "observability",
+      "keywords": ["otel", "opentelemetry", "observability", "telemetry", "traces", "metrics", "logs"],
       "tags": ["monitoring", "grafana", "tempo", "loki", "mimir"]
     }
   ]
