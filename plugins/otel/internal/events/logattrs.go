@@ -58,10 +58,11 @@ func commonLogAttrsFromSession(env payload.Envelope, sess state.Session) []log.K
 }
 
 // vcsMetricAttrs returns VCS attributes suitable for metrics (no URL — high cardinality).
-func vcsMetricAttrs(cwd string) []attribute.KeyValue {
+// Branch is only included when includeHighCardinality is true.
+func vcsMetricAttrs(cwd string, includeHighCardinality bool) []attribute.KeyValue {
 	gitCtx := gitpkg.GetContext(cwd)
 	var attrs []attribute.KeyValue
-	if gitCtx.Branch != "" {
+	if includeHighCardinality && gitCtx.Branch != "" {
 		attrs = append(attrs, attribute.String("vcs.ref.head.name", gitCtx.Branch))
 	}
 	if gitCtx.RepoName != "" {
@@ -74,9 +75,10 @@ func vcsMetricAttrs(cwd string) []attribute.KeyValue {
 }
 
 // vcsMetricAttrsFromSession returns VCS metric attributes from stored session state.
-func vcsMetricAttrsFromSession(sess state.Session) []attribute.KeyValue {
+// Branch is only included when includeHighCardinality is true.
+func vcsMetricAttrsFromSession(sess state.Session, includeHighCardinality bool) []attribute.KeyValue {
 	var attrs []attribute.KeyValue
-	if sess.GitBranch != "" {
+	if includeHighCardinality && sess.GitBranch != "" {
 		attrs = append(attrs, attribute.String("vcs.ref.head.name", sess.GitBranch))
 	}
 	if sess.GitRepoName != "" {
@@ -86,4 +88,12 @@ func vcsMetricAttrsFromSession(sess state.Session) []attribute.KeyValue {
 		attrs = append(attrs, attribute.String("vcs.repository.owner", sess.GitRepoOwner))
 	}
 	return attrs
+}
+
+// cwdMetricAttr returns the cwd attribute only when high cardinality metrics are enabled.
+func cwdMetricAttr(cwd string, includeHighCardinality bool) []attribute.KeyValue {
+	if includeHighCardinality {
+		return []attribute.KeyValue{attribute.String("claude_code.session.cwd", cwd)}
+	}
+	return nil
 }

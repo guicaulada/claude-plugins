@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
@@ -79,10 +78,8 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 		}
 		provider.EmitEvent("claude_code.prompt.submit", sess.TraceID, prompt.SpanID, logAttrs)
 
-		metricAttrs := []attribute.KeyValue{
-			attribute.String("claude_code.session.cwd", env.Cwd),
-		}
-		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd)...)
+		metricAttrs := cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)
+		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
 		provider.CounterAdd(ctx, "claude_code.prompt.count", 1, metricAttrs...)
 	}
 

@@ -93,10 +93,8 @@ func HandleStop(env payload.Envelope) error {
 	provider.EmitEvent("claude_code.prompt.stop", sess.TraceID, prompt.SpanID, logAttrs)
 
 	// Emit metric
-	metricAttrs := []attribute.KeyValue{
-		attribute.String("claude_code.session.cwd", env.Cwd),
-	}
-	metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd)...)
+	metricAttrs := cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)
+	metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
 	provider.HistogramRecord(ctx, "claude_code.prompt.duration", endTime.Sub(startTime).Seconds(), metricAttrs...)
 
 	debug.Log("stop: exported prompt span session=%s index=%d duration=%dms",

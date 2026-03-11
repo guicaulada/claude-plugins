@@ -10,12 +10,13 @@ import (
 var Version = "dev"
 
 type Config struct {
-	Enabled        bool
-	Debug          bool
-	Version        string
-	LogUserPrompts bool
-	LogToolDetails bool
-	IncludeVersion bool
+	Enabled              bool
+	Debug                bool
+	Version              string
+	LogUserPrompts       bool
+	LogToolDetails       bool
+	IncludeVersion       bool
+	IncludeHighCardinality bool
 }
 
 func Load() Config {
@@ -31,7 +32,8 @@ func Load() Config {
 		Version:        Version,
 		LogUserPrompts: os.Getenv("OTEL_LOG_USER_PROMPTS") == "1",
 		LogToolDetails: os.Getenv("OTEL_LOG_TOOL_DETAILS") == "1",
-		IncludeVersion: os.Getenv("OTEL_METRICS_INCLUDE_VERSION") == "true",
+		IncludeVersion:       os.Getenv("OTEL_METRICS_INCLUDE_VERSION") == "true",
+		IncludeHighCardinality: os.Getenv("OTEL_PLUGIN_METRICS_INCLUDE_HIGH_CARDINALITY") == "true",
 	}
 }
 

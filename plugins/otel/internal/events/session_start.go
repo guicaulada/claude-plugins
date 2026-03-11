@@ -73,9 +73,9 @@ func HandleSessionStart(env payload.Envelope) error {
 
 		metricAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.session.start_type", event.Source),
-			attribute.String("claude_code.session.cwd", env.Cwd),
 		}
-		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd)...)
+		metricAttrs = append(metricAttrs, cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)...)
+		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
 		provider.CounterAdd(ctx, "claude_code.session.count", 1, metricAttrs...)
 	}
 

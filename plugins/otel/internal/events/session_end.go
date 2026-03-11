@@ -205,9 +205,9 @@ func HandleSessionEnd(env payload.Envelope) error {
 	metricAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.session.start_type", sess.StartType),
 		attribute.String("claude_code.session.end_reason", event.Reason),
-		attribute.String("claude_code.session.cwd", sess.Cwd),
 	}
-	metricAttrs = append(metricAttrs, vcsMetricAttrsFromSession(sess)...)
+	metricAttrs = append(metricAttrs, cwdMetricAttr(sess.Cwd, cfg.IncludeHighCardinality)...)
+	metricAttrs = append(metricAttrs, vcsMetricAttrsFromSession(sess, cfg.IncludeHighCardinality)...)
 	provider.HistogramRecord(ctx, "claude_code.session.duration", endTime.Sub(startTime).Seconds(), metricAttrs...)
 
 	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d)",

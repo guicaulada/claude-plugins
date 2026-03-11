@@ -346,14 +346,14 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		}
 	}
 
-	vcsAttrs := vcsMetricAttrs(env.Cwd)
+	vcsAttrs := vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)
 
 	// tool.count
 	toolCountAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.tool.name", event.ToolName),
 		attribute.Bool("claude_code.tool.success", !isError),
-		attribute.String("claude_code.session.cwd", env.Cwd),
 	}
+	toolCountAttrs = append(toolCountAttrs, cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)...)
 	toolCountAttrs = append(toolCountAttrs, fileMetricAttrs...)
 	toolCountAttrs = append(toolCountAttrs, vcsAttrs...)
 	provider.CounterAdd(ctx, "claude_code.tool.count", 1, toolCountAttrs...)
@@ -362,8 +362,8 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	toolDurationAttrs := []attribute.KeyValue{
 		attribute.String("claude_code.tool.name", event.ToolName),
 		attribute.Bool("claude_code.tool.success", !isError),
-		attribute.String("claude_code.session.cwd", env.Cwd),
 	}
+	toolDurationAttrs = append(toolDurationAttrs, cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)...)
 	toolDurationAttrs = append(toolDurationAttrs, fileMetricAttrs...)
 	toolDurationAttrs = append(toolDurationAttrs, vcsAttrs...)
 	provider.HistogramRecord(ctx, "claude_code.tool.duration", endTime.Sub(startTime).Seconds(), toolDurationAttrs...)
@@ -380,9 +380,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 
 	// lines_changed.count
 	if linesAdded > 0 || linesRemoved > 0 {
-		lineAttrs := []attribute.KeyValue{
-			attribute.String("claude_code.session.cwd", env.Cwd),
-		}
+		lineAttrs := cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)
 		lineAttrs = append(lineAttrs, fileMetricAttrs...)
 		lineAttrs = append(lineAttrs, vcsAttrs...)
 

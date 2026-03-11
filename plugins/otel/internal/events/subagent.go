@@ -116,7 +116,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 			attribute.String("claude_code.agent.type", event.AgentType),
 			attribute.String("claude_code.agent.name", agentName),
 		}
-		saMetricAttrs = append(saMetricAttrs, vcsMetricAttrs(env.Cwd)...)
+		saMetricAttrs = append(saMetricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
 		provider.CounterAdd(ctx, "claude_code.subagent.count", 1, saMetricAttrs...)
 	}
 
@@ -220,7 +220,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 		attribute.String("claude_code.agent.type", sa.AgentType),
 		attribute.String("claude_code.agent.name", sa.AgentName),
 	}
-	saDurationAttrs = append(saDurationAttrs, vcsMetricAttrs(env.Cwd)...)
+	saDurationAttrs = append(saDurationAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
 	provider.HistogramRecord(ctx, "claude_code.subagent.duration", endTime.Sub(startTime).Seconds(), saDurationAttrs...)
 
 	debug.Log("subagent stop: session=%s agent=%s duration=%dms",
