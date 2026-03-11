@@ -20,12 +20,14 @@ func (p *Provider) EmitEvent(name string, traceIDHex, spanIDHex string, attrs ma
 		}
 	}
 
+	sev, sevText := eventSeverity(name)
+
 	var record log.Record
 	record.SetTimestamp(time.Now())
 	record.SetEventName(name)
 	record.SetBody(log.StringValue(name))
-	record.SetSeverity(log.SeverityInfo)
-	record.SetSeverityText("INFO")
+	record.SetSeverity(sev)
+	record.SetSeverityText(sevText)
 
 	kvs := make([]log.KeyValue, 0, len(attrs))
 	for k, v := range attrs {
@@ -34,4 +36,32 @@ func (p *Provider) EmitEvent(name string, traceIDHex, spanIDHex string, attrs ma
 	record.AddAttributes(kvs...)
 
 	p.logger.Emit(ctx, record)
+}
+
+// eventSeverity maps event names to appropriate OTel severity levels.
+func eventSeverity(name string) (log.Severity, string) {
+	switch name {
+	// Debug: lifecycle start events, informational loading
+	case "claude_code.tool.start",
+		"claude_code.agent.start",
+		"claude_code.instructions.loaded",
+		"claude_code.config.change",
+		"claude_code.worktree.create",
+		"claude_code.worktree.remove",
+		"claude_code.compact":
+		return log.SeverityDebug, "DEBUG"
+
+	// Warn: permission gates, teammate waiting
+	case "claude_code.permission.request",
+		"claude_code.teammate.idle":
+		return log.SeverityWarn, "WARN"
+
+	// Error: tool failures
+	case "claude_code.tool.error":
+		return log.SeverityError, "ERROR"
+
+	// Info: everything else (session start/end, prompt, tool end, notification, task)
+	default:
+		return log.SeverityInfo, "INFO"
+	}
 }
