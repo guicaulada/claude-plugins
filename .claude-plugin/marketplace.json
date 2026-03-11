@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins for observability, productivity, and development workflows",
-    "version": "0.2.3"
+    "version": "0.2.4"
   },
   "plugins": [
     {
