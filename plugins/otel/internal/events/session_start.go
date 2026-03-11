@@ -76,7 +76,7 @@ func HandleSessionStart(env payload.Envelope) error {
 		}
 		metricAttrs = append(metricAttrs, cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)...)
 		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
-		provider.CounterAdd(ctx, "claude_code.session.count", 1, metricAttrs...)
+		provider.CounterAdd(ctx, "claude_code.sessions", 1, metricAttrs...)
 	}
 
 	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s)",

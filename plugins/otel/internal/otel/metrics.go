@@ -28,15 +28,15 @@ type histogramDef struct {
 }
 
 var counterDefs = []counterDef{
-	{"claude_code.session.count", "{session}"},
-	{"claude_code.prompt.count", "{prompt}"},
-	{"claude_code.tool.count", "{tool}"},
-	{"claude_code.error.count", "{error}"},
-	{"claude_code.lines_changed.count", "{line}"},
-	{"claude_code.subagent.count", "{agent}"},
-	{"claude_code.compact.count", "{compact}"},
-	{"claude_code.notification.count", "{notification}"},
-	{"claude_code.task.count", "{task}"},
+	{"claude_code.sessions", "{session}"},
+	{"claude_code.prompts", "{prompt}"},
+	{"claude_code.tool.uses", "{use}"},
+	{"claude_code.errors", "{error}"},
+	{"claude_code.lines_changed", "{line}"},
+	{"claude_code.subagents", "{agent}"},
+	{"claude_code.compacts", "{compact}"},
+	{"claude_code.notifications", "{notification}"},
+	{"claude_code.tasks", "{task}"},
 }
 
 var histogramDefs = []histogramDef{

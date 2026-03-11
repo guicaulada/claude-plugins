@@ -80,7 +80,7 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 
 		metricAttrs := cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)
 		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
-		provider.CounterAdd(ctx, "claude_code.prompt.count", 1, metricAttrs...)
+		provider.CounterAdd(ctx, "claude_code.prompts", 1, metricAttrs...)
 	}
 
 	debug.Log("prompt submit: session=%s prompt_index=%d", env.SessionID, prompt.PromptIndex)

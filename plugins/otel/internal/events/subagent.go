@@ -117,7 +117,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 			attribute.String("claude_code.agent.name", agentName),
 		}
 		saMetricAttrs = append(saMetricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
-		provider.CounterAdd(ctx, "claude_code.subagent.count", 1, saMetricAttrs...)
+		provider.CounterAdd(ctx, "claude_code.subagents", 1, saMetricAttrs...)
 	}
 
 	debug.Log("subagent start: session=%s agent=%s type=%s id=%s",

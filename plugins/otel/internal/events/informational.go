@@ -108,7 +108,7 @@ func HandleNotification(env payload.Envelope) error {
 	}
 	provider.EmitEvent("claude_code.notification", sess.TraceID, sess.SpanID, logAttrs)
 
-	provider.CounterAdd(ctx, "claude_code.notification.count", 1,
+	provider.CounterAdd(ctx, "claude_code.notifications", 1,
 		attribute.String("claude_code.notification.type", event.NotificationType),
 	)
 
@@ -174,7 +174,7 @@ func HandleTaskCompleted(env payload.Envelope) error {
 	}
 	provider.EmitEvent("claude_code.task.completed", sess.TraceID, sess.SpanID, logAttrs)
 
-	provider.CounterAdd(ctx, "claude_code.task.count", 1)
+	provider.CounterAdd(ctx, "claude_code.tasks", 1)
 
 	parentSpanID := bestParentSpanID(store, env, sess)
 	_ = store.RecordEvent(state.SpanEvent{
@@ -471,7 +471,7 @@ func HandlePreCompact(env payload.Envelope) error {
 	}
 	provider.EmitEvent("claude_code.compact", sess.TraceID, sess.SpanID, logAttrs)
 
-	provider.CounterAdd(ctx, "claude_code.compact.count", 1,
+	provider.CounterAdd(ctx, "claude_code.compacts", 1,
 		attribute.String("claude_code.compact.trigger", event.Trigger),
 	)
 

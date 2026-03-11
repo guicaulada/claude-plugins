@@ -356,7 +356,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 	toolCountAttrs = append(toolCountAttrs, cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)...)
 	toolCountAttrs = append(toolCountAttrs, fileMetricAttrs...)
 	toolCountAttrs = append(toolCountAttrs, vcsAttrs...)
-	provider.CounterAdd(ctx, "claude_code.tool.count", 1, toolCountAttrs...)
+	provider.CounterAdd(ctx, "claude_code.tool.uses", 1, toolCountAttrs...)
 
 	// tool.duration
 	toolDurationAttrs := []attribute.KeyValue{
@@ -375,7 +375,7 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 			attribute.Bool("claude_code.error.is_interrupt", isInterrupt),
 		}
 		errorAttrs = append(errorAttrs, vcsAttrs...)
-		provider.CounterAdd(ctx, "claude_code.error.count", 1, errorAttrs...)
+		provider.CounterAdd(ctx, "claude_code.errors", 1, errorAttrs...)
 	}
 
 	// lines_changed.count
@@ -385,12 +385,12 @@ func handleToolEnd(env payload.Envelope, isError bool, errMsg string, isInterrup
 		lineAttrs = append(lineAttrs, vcsAttrs...)
 
 		if linesAdded > 0 {
-			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesAdded),
+			provider.CounterAdd(ctx, "claude_code.lines_changed", int64(linesAdded),
 				append(lineAttrs, attribute.String("claude_code.change_type", "added"))...,
 			)
 		}
 		if linesRemoved > 0 {
-			provider.CounterAdd(ctx, "claude_code.lines_changed.count", int64(linesRemoved),
+			provider.CounterAdd(ctx, "claude_code.lines_changed", int64(linesRemoved),
 				append(lineAttrs, attribute.String("claude_code.change_type", "removed"))...,
 			)
 		}
