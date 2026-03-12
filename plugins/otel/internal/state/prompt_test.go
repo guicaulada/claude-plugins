@@ -42,21 +42,16 @@ func TestPromptCRUD(t *testing.T) {
 		t.Errorf("PromptIndex = %d, want 2", p.PromptIndex)
 	}
 
-	// Count
-	count, err := store.GetPromptCount("s1")
-	if err != nil {
-		t.Fatalf("GetPromptCount: %v", err)
-	}
-	if count != 2 {
-		t.Errorf("count = %d, want 2", count)
-	}
-
 	// Delete
 	if err := store.DeletePrompt(p.ID); err != nil {
 		t.Fatalf("DeletePrompt: %v", err)
 	}
-	count, _ = store.GetPromptCount("s1")
-	if count != 1 {
-		t.Errorf("count after delete = %d, want 1", count)
+	// After deleting the most recent, GetCurrentPrompt returns the older one
+	p, err = store.GetCurrentPrompt("s1")
+	if err != nil {
+		t.Fatalf("GetCurrentPrompt after delete: %v", err)
+	}
+	if p.SpanID != "span-1" {
+		t.Errorf("SpanID after delete = %q, want %q", p.SpanID, "span-1")
 	}
 }

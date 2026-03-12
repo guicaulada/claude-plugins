@@ -31,7 +31,14 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 	}
 	defer func() { _ = store.Close() }()
 
-	count, err := store.GetPromptCount(env.SessionID)
+	// Increment prompt_count first so the index reflects the current prompt.
+	// Using the persistent counter (not row count) avoids reset to 1 after
+	// each prompt is deleted by HandleStop.
+	if err := store.IncrementCounter(env.SessionID, "prompt_count"); err != nil {
+		return err
+	}
+
+	count, err := store.GetCounter(env.SessionID, "prompt_count")
 	if err != nil {
 		return err
 	}
@@ -40,14 +47,10 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 		SessionID:   env.SessionID,
 		SpanID:      idgen.SpanID(),
 		StartTime:   time.Now().UnixNano(),
-		PromptIndex: count + 1,
+		PromptIndex: int(count),
 	}
 
 	if err := store.CreatePrompt(prompt); err != nil {
-		return err
-	}
-
-	if err := store.IncrementCounter(env.SessionID, "prompt_count"); err != nil {
 		return err
 	}
 

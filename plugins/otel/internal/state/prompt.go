@@ -35,15 +35,6 @@ func (s *Store) GetCurrentPrompt(sessionID string) (Prompt, error) {
 	return p, err
 }
 
-// GetPromptCount returns the number of prompts for a session.
-func (s *Store) GetPromptCount(sessionID string) (int, error) {
-	var count int
-	err := s.db.QueryRow(`
-		SELECT COUNT(*) FROM prompts WHERE session_id = ?`, sessionID,
-	).Scan(&count)
-	return count, err
-}
-
 // DeletePrompt removes a prompt by ID.
 func (s *Store) DeletePrompt(id int64) error {
 	_, err := s.db.Exec(`DELETE FROM prompts WHERE id = ?`, id)
