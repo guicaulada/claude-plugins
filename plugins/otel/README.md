@@ -7,7 +7,7 @@ A Claude Code plugin that provides in-depth observability of your Claude Code se
 ## Features
 
 - **Traces**: Session → Prompt → Tool/Subagent span hierarchy with parent-child linking
-- **Metrics**: 13 metrics (counters + histograms) with dimensions for project, branch, file type, tool, and more
+- **Metrics**: 14 metrics (counters + histograms) with dimensions for project, branch, file type, tool, and more
 - **Logs**: 18 event types as OTel log records with trace correlation
 - **Enrichment**: Git context (branch, repo, owner), file metadata (extension, language via go-enry), line diffs
 - **Interruption handling**: Orphaned spans from interrupted operations are exported with error status
@@ -63,6 +63,7 @@ The plugin reads standard `OTEL_EXPORTER_OTLP_*` env vars automatically. Plugin-
 |---|---|---|
 | `OTEL_LOG_USER_PROMPTS` | Include prompt content, task descriptions, compact instructions in logs | `0` (disabled) |
 | `OTEL_LOG_TOOL_DETAILS` | Include tool input details (bash commands, file paths, patterns, URLs) in logs | `0` (disabled) |
+| `OTEL_PLUGIN_METRICS_INCLUDE_HIGH_CARDINALITY` | Include high-cardinality attributes (`cwd`, VCS context) on metrics | `0` (disabled) |
 
 ### Auth & Headers
 
@@ -102,21 +103,22 @@ Session span attributes: `prompt_count`, `tool_count`, `error_count`, `subagent_
 
 ### Metrics
 
-| Metric | Type | Key Dimensions |
-|---|---|---|
-| `claude_code.session.count` | Counter | start_type, cwd, vcs.* |
-| `claude_code.session.duration` | Histogram | start_type, end_reason, cwd, vcs.* |
-| `claude_code.prompt.count` | Counter | cwd, vcs.* |
-| `claude_code.prompt.duration` | Histogram | cwd, vcs.* |
-| `claude_code.tool.count` | Counter | tool.name, tool.success, cwd, file.*, vcs.* |
-| `claude_code.tool.duration` | Histogram | tool.name, tool.success, cwd, file.*, vcs.* |
-| `claude_code.error.count` | Counter | tool.name, error.is_interrupt, vcs.* |
-| `claude_code.lines_changed.count` | Counter | type (added/removed), cwd, file.*, vcs.* |
-| `claude_code.subagent.count` | Counter | agent.type, agent.name, vcs.* |
-| `claude_code.subagent.duration` | Histogram | agent.type, agent.name, vcs.* |
-| `claude_code.compact.count` | Counter | trigger |
-| `claude_code.notification.count` | Counter | notification.type |
-| `claude_code.task.count` | Counter | — |
+| Metric | Type | Unit | Key Dimensions |
+|---|---|---|---|
+| `claude_code.sessions` | Counter | `{session}` | start_type, cwd, vcs.* |
+| `claude_code.session.duration` | Histogram | `s` | start_type, end_reason, cwd, vcs.* |
+| `claude_code.prompts` | Counter | `{prompt}` | cwd, vcs.* |
+| `claude_code.prompt.duration` | Histogram | `s` | cwd, vcs.* |
+| `claude_code.tool.uses` | Counter | `{use}` | tool.name, tool.success, cwd, file.*, vcs.* |
+| `claude_code.tool.duration` | Histogram | `s` | tool.name, tool.success, cwd, file.*, vcs.* |
+| `claude_code.errors` | Counter | `{error}` | tool.name, error.is_interrupt, vcs.* |
+| `claude_code.lines_changed` | Counter | `{line}` | lines_changed.type (added/removed), cwd, file.*, vcs.* |
+| `claude_code.subagents` | Counter | `{agent}` | agent.type, agent.name, vcs.* |
+| `claude_code.subagent.duration` | Histogram | `s` | agent.type, agent.name, vcs.* |
+| `claude_code.compacts` | Counter | `{compact}` | trigger |
+| `claude_code.notifications` | Counter | `{notification}` | notification.type |
+| `claude_code.tasks` | Counter | `{task}` | — |
+| `claude_code.permission_requests` | Counter | `{request}` | — |
 
 ### Events (Logs)
 
