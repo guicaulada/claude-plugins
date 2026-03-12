@@ -56,6 +56,10 @@ func HandlePermissionRequest(env payload.Envelope) error {
 	logAttrs = append(logAttrs, log.String("claude_code.tool.name", event.ToolName))
 	provider.EmitEvent("claude_code.permission.request", sess.TraceID, sess.SpanID, logAttrs)
 
+	provider.CounterAdd(ctx, "claude_code.permission_requests", 1,
+		attribute.String("claude_code.tool.name", event.ToolName),
+	)
+
 	parentSpanID := bestParentSpanID(store, env, sess)
 	_ = store.RecordEvent(state.SpanEvent{
 		SessionID: env.SessionID,

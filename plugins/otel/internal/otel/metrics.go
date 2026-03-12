@@ -48,6 +48,7 @@ var counterDefs = []counterDef{
 	{"claude_code.compacts", "{compact}", "Number of conversation compactions"},
 	{"claude_code.notifications", "{notification}", "Number of notifications sent"},
 	{"claude_code.tasks", "{task}", "Number of tasks completed"},
+	{"claude_code.permission_requests", "{request}", "Number of permission requests"},
 }
 
 var histogramDefs = []histogramDef{
