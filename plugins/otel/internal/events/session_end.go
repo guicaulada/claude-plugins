@@ -206,7 +206,7 @@ func HandleSessionEnd(env payload.Envelope) error {
 		log.String("claude_code.session.start_type", sess.StartType),
 		log.Int64("claude_code.session.duration_ms", durationMs),
 	)
-	provider.EmitEvent("claude_code.session.end", sess.TraceID, sess.SpanID, logAttrs)
+	provider.EmitEvent("claude_code.session.end", sess.TraceID, sess.SpanID, logAttrs, "session ended: "+event.Reason)
 
 	// Emit metric
 	metricAttrs := []attribute.KeyValue{

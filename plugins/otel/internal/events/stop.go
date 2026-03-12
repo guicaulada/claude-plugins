@@ -90,7 +90,7 @@ func HandleStop(env payload.Envelope) error {
 		log.Int("claude_code.prompt.index", prompt.PromptIndex),
 		log.Int64("claude_code.prompt.duration_ms", durationMs),
 	)
-	provider.EmitEvent("claude_code.prompt.stop", sess.TraceID, prompt.SpanID, logAttrs)
+	provider.EmitEvent("claude_code.prompt.stop", sess.TraceID, prompt.SpanID, logAttrs, fmt.Sprintf("prompt #%d completed", prompt.PromptIndex))
 
 	// Emit metric
 	metricAttrs := cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)

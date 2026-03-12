@@ -80,7 +80,7 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 		if cfg.LogUserPrompts && event.Prompt != "" {
 			logAttrs = append(logAttrs, log.String("claude_code.prompt.content", event.Prompt))
 		}
-		provider.EmitEvent("claude_code.prompt.submit", sess.TraceID, prompt.SpanID, logAttrs)
+		provider.EmitEvent("claude_code.prompt.submit", sess.TraceID, prompt.SpanID, logAttrs, fmt.Sprintf("prompt #%d submitted", prompt.PromptIndex))
 
 		metricAttrs := cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)
 		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)

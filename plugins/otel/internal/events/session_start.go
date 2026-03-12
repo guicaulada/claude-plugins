@@ -70,7 +70,7 @@ func HandleSessionStart(env payload.Envelope) error {
 
 		logAttrs := commonLogAttrs(env)
 		logAttrs = append(logAttrs, log.String("claude_code.session.start_type", event.Source))
-		provider.EmitEvent("claude_code.session.start", sess.TraceID, sess.SpanID, logAttrs)
+		provider.EmitEvent("claude_code.session.start", sess.TraceID, sess.SpanID, logAttrs, "session started via "+event.Source)
 
 		metricAttrs := []attribute.KeyValue{
 			attribute.String("claude_code.session.start_type", event.Source),

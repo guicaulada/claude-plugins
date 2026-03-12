@@ -97,7 +97,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 			log.String("claude_code.agent.name", agentName),
 			log.String("claude_code.agent.id", event.AgentID),
 		)
-		provider.EmitEvent("claude_code.agent.start", sess.TraceID, sa.SpanID, startLogAttrs)
+		provider.EmitEvent("claude_code.agent.start", sess.TraceID, sa.SpanID, startLogAttrs, "agent "+agentName+" started")
 
 		// Record event on parent span timeline (prompt)
 		if err := store.RecordEvent(state.SpanEvent{
@@ -213,7 +213,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 		log.String("claude_code.agent.id", sa.AgentID),
 		log.Int64("claude_code.agent.duration_ms", durationMs),
 	)
-	provider.EmitEvent("claude_code.agent.stop", sess.TraceID, sa.SpanID, stopLogAttrs)
+	provider.EmitEvent("claude_code.agent.stop", sess.TraceID, sa.SpanID, stopLogAttrs, "agent "+sa.AgentName+" stopped")
 
 	// Emit metric
 	saDurationAttrs := []attribute.KeyValue{
