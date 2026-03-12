@@ -29,9 +29,9 @@ func Load() Config {
 		Enabled:        enabled,
 		Debug:          debug,
 		Version:        pluginVersion(),
-		LogUserPrompts: os.Getenv("OTEL_LOG_USER_PROMPTS") == "1",
-		LogToolDetails: os.Getenv("OTEL_LOG_TOOL_DETAILS") == "1",
-		IncludeHighCardinality: os.Getenv("OTEL_PLUGIN_METRICS_INCLUDE_HIGH_CARDINALITY") == "true",
+		LogUserPrompts: parseBool(os.Getenv("OTEL_LOG_USER_PROMPTS")),
+		LogToolDetails: parseBool(os.Getenv("OTEL_LOG_TOOL_DETAILS")),
+		IncludeHighCardinality: parseBool(os.Getenv("OTEL_PLUGIN_METRICS_INCLUDE_HIGH_CARDINALITY")),
 	}
 }
 
@@ -81,6 +81,16 @@ func stripScheme(endpoint string) string {
 		return u.Host + u.Path
 	}
 	return endpoint
+}
+
+// parseBool accepts common truthy values: "1", "true", "yes".
+func parseBool(s string) bool {
+	switch strings.ToLower(s) {
+	case "1", "true", "yes":
+		return true
+	default:
+		return false
+	}
 }
 
 // pluginVersion reads the version from .claude-plugin/plugin.json relative

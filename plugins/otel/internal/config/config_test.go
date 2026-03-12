@@ -36,7 +36,11 @@ func TestLoad(t *testing.T) {
 	t.Setenv("OTEL_PLUGIN_DEBUG", "1")
 	t.Setenv("OTEL_LOG_USER_PROMPTS", "1")
 	t.Setenv("OTEL_LOG_TOOL_DETAILS", "1")
+	t.Setenv("OTEL_PLUGIN_METRICS_INCLUDE_HIGH_CARDINALITY", "1")
 	cfg := Load()
+	if !cfg.IncludeHighCardinality {
+		t.Error("expected IncludeHighCardinality to be true with '1'")
+	}
 	if !cfg.Enabled {
 		t.Error("expected Enabled to be true")
 	}
