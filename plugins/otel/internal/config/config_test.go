@@ -13,9 +13,13 @@ func TestResolveEnabled(t *testing.T) {
 	}{
 		{"plugin explicitly enabled", "1", "0", true},
 		{"plugin explicitly enabled true", "true", "0", true},
+		{"plugin explicitly enabled TRUE", "TRUE", "0", true},
+		{"plugin explicitly enabled yes", "yes", "0", true},
 		{"plugin explicitly disabled", "0", "1", false},
 		{"plugin explicitly disabled false", "false", "1", false},
+		{"plugin explicitly disabled no", "no", "1", false},
 		{"fallback to telemetry enabled", "", "1", true},
+		{"fallback to telemetry enabled true", "", "true", true},
 		{"fallback to telemetry disabled", "", "0", false},
 		{"both unset", "", "", false},
 	}
@@ -52,6 +56,30 @@ func TestLoad(t *testing.T) {
 	}
 	if !cfg.LogToolDetails {
 		t.Error("expected LogToolDetails to be true")
+	}
+}
+
+func TestLoadBoolFormats(t *testing.T) {
+	t.Setenv("OTEL_PLUGIN_ENABLED", "yes")
+	t.Setenv("OTEL_PLUGIN_DEBUG", "true")
+	t.Setenv("OTEL_LOG_USER_PROMPTS", "TRUE")
+	t.Setenv("OTEL_LOG_TOOL_DETAILS", "Yes")
+	t.Setenv("OTEL_PLUGIN_METRICS_INCLUDE_HIGH_CARDINALITY", "true")
+	cfg := Load()
+	if !cfg.Enabled {
+		t.Error("expected Enabled with 'yes'")
+	}
+	if !cfg.Debug {
+		t.Error("expected Debug with 'true'")
+	}
+	if !cfg.LogUserPrompts {
+		t.Error("expected LogUserPrompts with 'TRUE'")
+	}
+	if !cfg.LogToolDetails {
+		t.Error("expected LogToolDetails with 'Yes'")
+	}
+	if !cfg.IncludeHighCardinality {
+		t.Error("expected IncludeHighCardinality with 'true'")
 	}
 }
 

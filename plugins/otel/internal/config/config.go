@@ -21,7 +21,7 @@ type Config struct {
 func Load() Config {
 	pluginEnabled := os.Getenv("OTEL_PLUGIN_ENABLED")
 	telemetryEnabled := os.Getenv("CLAUDE_CODE_ENABLE_TELEMETRY")
-	debug := os.Getenv("OTEL_PLUGIN_DEBUG") == "1"
+	debug := parseBool(os.Getenv("OTEL_PLUGIN_DEBUG"))
 
 	enabled := resolveEnabled(pluginEnabled, telemetryEnabled)
 
@@ -66,13 +66,13 @@ func (c Config) PluginHeaders() map[string]string {
 }
 
 func resolveEnabled(pluginEnabled, telemetryEnabled string) bool {
-	switch pluginEnabled {
-	case "1", "true":
+	switch strings.ToLower(pluginEnabled) {
+	case "1", "true", "yes":
 		return true
-	case "0", "false":
+	case "0", "false", "no":
 		return false
 	}
-	return telemetryEnabled == "1"
+	return parseBool(telemetryEnabled)
 }
 
 // stripScheme removes http:// or https:// prefix for the OTLP exporter WithEndpoint.
