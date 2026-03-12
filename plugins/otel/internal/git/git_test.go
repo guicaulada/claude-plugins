@@ -1,6 +1,7 @@
 package git
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -78,6 +79,26 @@ func TestGetContext(t *testing.T) {
 	}
 	t.Logf("branch=%s remote=%s owner=%s repo=%s sha=%s",
 		ctx.Branch, ctx.RemoteURL, ctx.RepoOwner, ctx.RepoName, ctx.HeadSHA)
+}
+
+func TestReadHeadSHARejectsPathTraversal(t *testing.T) {
+	// Create a fake git repo with a malicious .git/HEAD
+	dir := t.TempDir()
+	gitDir := filepath.Join(dir, ".git")
+	if err := os.MkdirAll(gitDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Write a HEAD that passes the refs/ prefix check but traverses out
+	malicious := "ref: refs/../../../../etc/passwd\n"
+	if err := os.WriteFile(filepath.Join(gitDir, "HEAD"), []byte(malicious), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	sha := readHeadSHA(dir)
+	if sha != "" {
+		t.Errorf("expected empty SHA for path traversal, got %q", sha)
+	}
 }
 
 func TestGetContextNonGitDir(t *testing.T) {

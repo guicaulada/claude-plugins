@@ -76,7 +76,11 @@ func readHeadSHA(dir string) string {
 	if !strings.HasPrefix(refPath, "refs/") {
 		return ""
 	}
-	sha, err := os.ReadFile(filepath.Join(dir, ".git", refPath))
+	fullPath := filepath.Join(dir, ".git", refPath)
+	if !strings.HasPrefix(filepath.Clean(fullPath), filepath.Join(dir, ".git")+string(filepath.Separator)) {
+		return ""
+	}
+	sha, err := os.ReadFile(fullPath)
 	if err != nil {
 		return ""
 	}
