@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
+	pluginotel "github.com/guicaulada/claude-plugins/plugins/otel/internal/otel"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/payload"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/state"
@@ -56,7 +57,7 @@ func HandlePermissionRequest(env payload.Envelope) error {
 	logAttrs = append(logAttrs, log.String("claude_code.tool.name", event.ToolName))
 	provider.EmitEvent("claude_code.permission.request", sess.TraceID, sess.SpanID, logAttrs)
 
-	provider.CounterAdd(ctx, "claude_code.permission_requests", 1,
+	provider.CounterAdd(ctx, pluginotel.MetricPermissionRequests, 1,
 		attribute.String("claude_code.tool.name", event.ToolName),
 	)
 
@@ -114,7 +115,7 @@ func HandleNotification(env payload.Envelope) error {
 	}
 	provider.EmitEvent("claude_code.notification", sess.TraceID, sess.SpanID, logAttrs)
 
-	provider.CounterAdd(ctx, "claude_code.notifications", 1,
+	provider.CounterAdd(ctx, pluginotel.MetricNotifications, 1,
 		attribute.String("claude_code.notification.type", event.NotificationType),
 	)
 
@@ -180,7 +181,7 @@ func HandleTaskCompleted(env payload.Envelope) error {
 	}
 	provider.EmitEvent("claude_code.task.completed", sess.TraceID, sess.SpanID, logAttrs)
 
-	provider.CounterAdd(ctx, "claude_code.tasks", 1)
+	provider.CounterAdd(ctx, pluginotel.MetricTasks, 1)
 
 	parentSpanID := bestParentSpanID(store, env, sess)
 	_ = store.RecordEvent(state.SpanEvent{
@@ -477,7 +478,7 @@ func HandlePreCompact(env payload.Envelope) error {
 	}
 	provider.EmitEvent("claude_code.compact", sess.TraceID, sess.SpanID, logAttrs)
 
-	provider.CounterAdd(ctx, "claude_code.compacts", 1,
+	provider.CounterAdd(ctx, pluginotel.MetricCompacts, 1,
 		attribute.String("claude_code.compact.trigger", event.Trigger),
 	)
 

@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
+	pluginotel "github.com/guicaulada/claude-plugins/plugins/otel/internal/otel"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/idgen"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/payload"
@@ -83,7 +84,7 @@ func HandleUserPromptSubmit(env payload.Envelope) error {
 
 		metricAttrs := cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)
 		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
-		provider.CounterAdd(ctx, "claude_code.prompts", 1, metricAttrs...)
+		provider.CounterAdd(ctx, pluginotel.MetricPrompts, 1, metricAttrs...)
 	}
 
 	debug.Log("prompt submit: session=%s prompt_index=%d", env.SessionID, prompt.PromptIndex)

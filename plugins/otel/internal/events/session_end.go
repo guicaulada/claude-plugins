@@ -215,7 +215,7 @@ func HandleSessionEnd(env payload.Envelope) error {
 	}
 	metricAttrs = append(metricAttrs, cwdMetricAttr(sess.Cwd, cfg.IncludeHighCardinality)...)
 	metricAttrs = append(metricAttrs, vcsMetricAttrsFromSession(sess, cfg.IncludeHighCardinality)...)
-	provider.HistogramRecord(ctx, "claude_code.session.duration", endTime.Sub(startTime).Seconds(), metricAttrs...)
+	provider.HistogramRecord(ctx, pluginotel.MetricSessionDuration, endTime.Sub(startTime).Seconds(), metricAttrs...)
 
 	debug.Log("session end: %s (trace: %s, duration: %dms, prompts: %d, tools: %d, errors: %d, subagents: %d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d)",
 		env.SessionID, sess.TraceID, durationMs,

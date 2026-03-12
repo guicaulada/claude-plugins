@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/log"
 
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/config"
+	pluginotel "github.com/guicaulada/claude-plugins/plugins/otel/internal/otel"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/debug"
 	gitpkg "github.com/guicaulada/claude-plugins/plugins/otel/internal/git"
 	"github.com/guicaulada/claude-plugins/plugins/otel/internal/idgen"
@@ -76,7 +77,7 @@ func HandleSessionStart(env payload.Envelope) error {
 		}
 		metricAttrs = append(metricAttrs, cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)...)
 		metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
-		provider.CounterAdd(ctx, "claude_code.sessions", 1, metricAttrs...)
+		provider.CounterAdd(ctx, pluginotel.MetricSessions, 1, metricAttrs...)
 	}
 
 	debug.Log("session start: %s (trace: %s, type: %s, cwd: %s, branch: %s, repo: %s/%s)",

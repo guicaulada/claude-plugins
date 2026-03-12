@@ -30,6 +30,25 @@ type histogramDef struct {
 	buckets []float64
 }
 
+// Metric name constants used in both registration and call sites.
+const (
+	MetricSessions           = "claude_code.sessions"
+	MetricPrompts            = "claude_code.prompts"
+	MetricToolUses           = "claude_code.tool.uses"
+	MetricErrors             = "claude_code.errors"
+	MetricLinesChanged       = "claude_code.lines_changed"
+	MetricSubagents          = "claude_code.subagents"
+	MetricCompacts           = "claude_code.compacts"
+	MetricNotifications      = "claude_code.notifications"
+	MetricTasks              = "claude_code.tasks"
+	MetricPermissionRequests = "claude_code.permission_requests"
+
+	MetricSessionDuration  = "claude_code.session.duration"
+	MetricPromptDuration   = "claude_code.prompt.duration"
+	MetricToolDuration     = "claude_code.tool.duration"
+	MetricSubagentDuration = "claude_code.subagent.duration"
+)
+
 // Bucket boundaries in seconds, tailored to each metric's expected distribution.
 var (
 	// Tool durations: ~50ms to a few minutes
@@ -39,23 +58,23 @@ var (
 )
 
 var counterDefs = []counterDef{
-	{"claude_code.sessions", "{session}", "Number of sessions started"},
-	{"claude_code.prompts", "{prompt}", "Number of prompts submitted"},
-	{"claude_code.tool.uses", "{use}", "Number of tool invocations"},
-	{"claude_code.errors", "{error}", "Number of tool errors"},
-	{"claude_code.lines_changed", "{line}", "Lines added or removed"},
-	{"claude_code.subagents", "{agent}", "Number of subagents started"},
-	{"claude_code.compacts", "{compact}", "Number of conversation compactions"},
-	{"claude_code.notifications", "{notification}", "Number of notifications sent"},
-	{"claude_code.tasks", "{task}", "Number of tasks completed"},
-	{"claude_code.permission_requests", "{request}", "Number of permission requests"},
+	{MetricSessions, "{session}", "Number of sessions started"},
+	{MetricPrompts, "{prompt}", "Number of prompts submitted"},
+	{MetricToolUses, "{use}", "Number of tool invocations"},
+	{MetricErrors, "{error}", "Number of tool errors"},
+	{MetricLinesChanged, "{line}", "Lines added or removed"},
+	{MetricSubagents, "{agent}", "Number of subagents started"},
+	{MetricCompacts, "{compact}", "Number of conversation compactions"},
+	{MetricNotifications, "{notification}", "Number of notifications sent"},
+	{MetricTasks, "{task}", "Number of tasks completed"},
+	{MetricPermissionRequests, "{request}", "Number of permission requests"},
 }
 
 var histogramDefs = []histogramDef{
-	{"claude_code.session.duration", "s", "Session duration", sessionBuckets},
-	{"claude_code.prompt.duration", "s", "Time from prompt submit to response", sessionBuckets},
-	{"claude_code.tool.duration", "s", "Tool execution duration", toolBuckets},
-	{"claude_code.subagent.duration", "s", "Subagent execution duration", toolBuckets},
+	{MetricSessionDuration, "s", "Session duration", sessionBuckets},
+	{MetricPromptDuration, "s", "Time from prompt submit to response", sessionBuckets},
+	{MetricToolDuration, "s", "Tool execution duration", toolBuckets},
+	{MetricSubagentDuration, "s", "Subagent execution duration", toolBuckets},
 }
 
 func newInstruments(meter otelmetric.Meter) instruments {

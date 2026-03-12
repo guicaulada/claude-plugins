@@ -117,7 +117,7 @@ func HandleSubagentStart(env payload.Envelope) error {
 			attribute.String("claude_code.agent.name", agentName),
 		}
 		saMetricAttrs = append(saMetricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
-		provider.CounterAdd(ctx, "claude_code.subagents", 1, saMetricAttrs...)
+		provider.CounterAdd(ctx, pluginotel.MetricSubagents, 1, saMetricAttrs...)
 	}
 
 	debug.Log("subagent start: session=%s agent=%s type=%s id=%s",
@@ -221,7 +221,7 @@ func HandleSubagentStop(env payload.Envelope) error {
 		attribute.String("claude_code.agent.name", sa.AgentName),
 	}
 	saDurationAttrs = append(saDurationAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
-	provider.HistogramRecord(ctx, "claude_code.subagent.duration", endTime.Sub(startTime).Seconds(), saDurationAttrs...)
+	provider.HistogramRecord(ctx, pluginotel.MetricSubagentDuration, endTime.Sub(startTime).Seconds(), saDurationAttrs...)
 
 	debug.Log("subagent stop: session=%s agent=%s duration=%dms",
 		env.SessionID, sa.AgentType, durationMs)

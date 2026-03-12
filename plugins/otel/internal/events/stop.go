@@ -95,7 +95,7 @@ func HandleStop(env payload.Envelope) error {
 	// Emit metric
 	metricAttrs := cwdMetricAttr(env.Cwd, cfg.IncludeHighCardinality)
 	metricAttrs = append(metricAttrs, vcsMetricAttrs(env.Cwd, cfg.IncludeHighCardinality)...)
-	provider.HistogramRecord(ctx, "claude_code.prompt.duration", endTime.Sub(startTime).Seconds(), metricAttrs...)
+	provider.HistogramRecord(ctx, pluginotel.MetricPromptDuration, endTime.Sub(startTime).Seconds(), metricAttrs...)
 
 	debug.Log("stop: exported prompt span session=%s index=%d duration=%dms",
 		env.SessionID, prompt.PromptIndex, durationMs)
