@@ -49,6 +49,8 @@ func HandlePermissionRequest(env payload.Envelope) error {
 	}
 	defer provider.Shutdown(ctx)
 
+	_ = store.IncrementCounter(env.SessionID, "permission_request_count")
+
 	sess, _ := store.GetSession(env.SessionID)
 	logAttrs := commonLogAttrs(env)
 	logAttrs = append(logAttrs, log.String("claude_code.tool.name", event.ToolName))

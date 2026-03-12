@@ -98,7 +98,7 @@ session (root)
 └── (exported at SessionEnd with aggregated attributes)
 ```
 
-Session span attributes: `prompt_count`, `tool_count`, `error_count`, `subagent_count`, `lines_added`, `lines_removed`, `commit_count`, `branch_count`, `repo_count`, `interrupted_count`, `duration_ms`, VCS context.
+Session span attributes: `prompt_count`, `tool_count`, `error_count`, `subagent_count`, `lines_added`, `lines_removed`, `commit_count`, `branch_count`, `repo_count`, `interrupted_count`, `notification_count`, `compact_count`, `task_count`, `permission_request_count`, VCS context.
 
 ### Metrics
 

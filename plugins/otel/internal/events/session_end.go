@@ -142,9 +142,13 @@ func HandleSessionEnd(env payload.Envelope) error {
 	branchCount, _ := store.GetCounter(env.SessionID, "branch_count")
 	repoCount, _ := store.GetCounter(env.SessionID, "repo_count")
 	interruptedCount, _ := store.GetCounter(env.SessionID, "interrupted_count")
+	notificationCount, _ := store.GetCounter(env.SessionID, "notification_count")
+	compactCount, _ := store.GetCounter(env.SessionID, "compact_count")
+	taskCount, _ := store.GetCounter(env.SessionID, "task_count")
+	permissionRequestCount, _ := store.GetCounter(env.SessionID, "permission_request_count")
 
-	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d interrupted=%d",
-		promptCount, toolCount, errorCount, subagentCount, linesAdded, linesRemoved, commitCount, branchCount, repoCount, interruptedCount)
+	debug.Log("session end: counters prompts=%d tools=%d errors=%d subagents=%d lines_added=%d lines_removed=%d commits=%d branches=%d repos=%d interrupted=%d notifications=%d compacts=%d tasks=%d permission_requests=%d",
+		promptCount, toolCount, errorCount, subagentCount, linesAdded, linesRemoved, commitCount, branchCount, repoCount, interruptedCount, notificationCount, compactCount, taskCount, permissionRequestCount)
 
 	debug.Log("session end: creating root context trace=%s span=%s", sess.TraceID, sess.SpanID)
 	rootCtx, err := pluginotel.RootContext(sess.TraceID, sess.SpanID)
@@ -169,6 +173,10 @@ func HandleSessionEnd(env payload.Envelope) error {
 		attribute.Int64("claude_code.session.branch_count", branchCount),
 		attribute.Int64("claude_code.session.repo_count", repoCount),
 		attribute.Int64("claude_code.session.interrupted_count", interruptedCount),
+		attribute.Int64("claude_code.session.notification_count", notificationCount),
+		attribute.Int64("claude_code.session.compact_count", compactCount),
+		attribute.Int64("claude_code.session.task_count", taskCount),
+		attribute.Int64("claude_code.session.permission_request_count", permissionRequestCount),
 	}
 
 	if sess.GitBranch != "" {
