@@ -78,6 +78,79 @@ The plugin reads standard `OTEL_EXPORTER_OTLP_*` env vars automatically. Plugin-
 |---|---|
 | `OTEL_PLUGIN_DEBUG` | Set to `1` to enable debug logging to `$TMPDIR/claude-code-otel-plugin/debug.log` |
 
+## Examples
+
+### Grafana Cloud with Alloy
+
+This example shows how to send telemetry from the plugin to [Grafana Cloud](https://grafana.com/products/cloud/) using [Grafana Alloy](https://grafana.com/docs/alloy/) as a local collector. Alloy receives OTLP over HTTP, converts delta metrics to cumulative (required by Grafana Cloud / Prometheus), and forwards everything to Grafana Cloud.
+
+#### Alloy configuration
+
+Add the following blocks to your Alloy configuration file (e.g., `config.alloy`). If you already have an existing `otelcol.receiver.otlp` block, merge the outputs rather than adding a duplicate receiver.
+
+```alloy
+otelcol.receiver.otlp "default" {
+  http {}
+  output {
+    metrics = [otelcol.processor.deltatocumulative.default.input]
+    traces  = [otelcol.exporter.otlphttp.grafana.input]
+    logs    = [otelcol.exporter.otlphttp.grafana.input]
+  }
+}
+
+otelcol.processor.deltatocumulative "default" {
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana.input]
+  }
+}
+
+otelcol.exporter.otlphttp "grafana" {
+  client {
+    endpoint = "<grafana cloud otlp endpoint>"
+    auth     = otelcol.auth.basic.grafana.handler
+  }
+}
+
+otelcol.auth.basic "grafana" {
+  username = "<grafana cloud id>"
+  password = "<grafana cloud token>"
+}
+```
+
+Replace `<grafana cloud otlp endpoint>`, `<grafana cloud id>`, and `<grafana cloud token>` with your Grafana Cloud OTLP values.
+
+#### Claude Code settings
+
+Merge the following `env` variables into your Claude Code `settings.json` (at `~/.claude/settings.json` or project-level `.claude/settings.json`). If you already have an `env` object, add these keys to it.
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "OTEL_LOGS_EXPORTER": "otlp",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://0.0.0.0:4318",
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": "delta",
+    "OTEL_METRIC_EXPORT_INTERVAL": "30000",
+    "OTEL_LOGS_EXPORT_INTERVAL": "5000",
+    "OTEL_LOG_TOOL_DETAILS": "1",
+    "OTEL_LOG_USER_PROMPTS": "1",
+    "OTEL_METRICS_INCLUDE_SESSION_ID": "true",
+    "OTEL_METRICS_INCLUDE_VERSION": "true",
+    "OTEL_METRICS_INCLUDE_ACCOUNT_UUID": "true",
+    "OTEL_PLUGIN_METRICS_INCLUDE_HIGH_CARDINALITY": "true",
+    "OTEL_PLUGIN_DEBUG": "1"
+  }
+}
+```
+
+Key settings:
+- **`OTEL_EXPORTER_OTLP_ENDPOINT`** points to the local Alloy OTLP receiver (`http://0.0.0.0:4318`)
+- **`OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta`** is required — Alloy's `deltatocumulative` processor handles the conversion
+- **`OTEL_LOG_TOOL_DETAILS`** and **`OTEL_LOG_USER_PROMPTS`** enable detailed log content (opt-in for privacy)
+- **`OTEL_PLUGIN_DEBUG`** enables debug logging to `$TMPDIR/claude-code-otel-plugin/debug.log` for troubleshooting
+
 ## Signals
 
 ### Traces
